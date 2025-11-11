@@ -18,7 +18,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
   Camera,
-  Clapperboard,
+  FolderOpen,
   Gauge,
   Headphones,
   History,
@@ -31,26 +31,16 @@ import {
   Repeat,
   Repeat1,
   Repeat2,
-  ScanLine,
   Settings2,
   Shuffle,
   SlidersHorizontal,
   Square,
-  Star,
   StepBack,
   StepForward,
   UserRound,
   Video,
   Pause,
 } from 'lucide-react'
-
-const libraryNav = [
-  { id: 'library', icon: Library, labelId: 'nav.library', fallback: 'Library' },
-  { id: 'audio', icon: Headphones, labelId: 'nav.audio', fallback: 'Audio focus' },
-  { id: 'video', icon: Clapperboard, labelId: 'nav.video', fallback: 'Video focus' },
-  { id: 'favorites', icon: Star, labelId: 'nav.favorites', fallback: 'Favorites' },
-  { id: 'recents', icon: History, labelId: 'nav.recents', fallback: 'Recents' },
-]
 
 const actionGrid: Array<{
   id: string
@@ -59,7 +49,6 @@ const actionGrid: Array<{
   fallback: string
   onClick?: () => void
 }> = [
-  { id: 'scan', icon: ScanLine, labelId: 'action.scan', fallback: 'Scan folders' },
   { id: 'pip', icon: PictureInPicture, labelId: 'action.pip', fallback: 'Picture in picture' },
   { id: 'snapshot', icon: Camera, labelId: 'action.snapshot', fallback: 'Snapshot' },
   { id: 'repeat-ab', icon: Repeat2, labelId: 'action.repeat', fallback: 'A-B repeat' },
@@ -385,48 +374,63 @@ function App() {
           <LocaleSwitcher />
         </header>
 
-        <section className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_260px]">
-          <Panel icon={Library} label={t('nav.library', 'Library')} className="space-y-5">
-            <div className="flex flex-wrap gap-2">
-              {libraryNav.map((item) => (
+        <section className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)_260px]">
+          <Panel icon={Library} label={t('nav.library', 'Library')} className="space-y-4">
+            <ActionTile
+              icon={FolderOpen}
+              label={t('action.scan', 'Scan folders')}
+              description={t('library.scanDesc', 'Pick a local folder of audio/video')}
+              onClick={handleScan}
+              busy={loading}
+            />
+            {savedFolders.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.4em] text-white/40">
+                  {t('library.recentsTitle', 'Recent folders')}
+                </p>
+                <div className="space-y-2">
+                  {savedFolders.map((folder) => (
+                    <ActionTile
+                      key={folder.id}
+                      icon={History}
+                      label={folder.name}
+                      description={t('library.tapToReload', 'Tap to reopen')}
+                      onClick={() => loadFromSavedFolder(folder.id)}
+                      disabled={loading}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.4em] text-white/40">
+                {t('library.playbackPrefs', 'Playback')}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
                 <IconButton
-                  key={item.id}
-                  icon={item.icon}
-                  label={t(item.labelId, item.fallback)}
-                  size="md"
-                  onClick={() => {
-                    if (item.id === 'audio' || item.id === 'video') {
-                      setMode(item.id as PlayerMode)
-                    }
-                  }}
+                  icon={queueMeta.icon}
+                  label={t(queueMeta.labelId, queueMeta.fallback)}
+                  size="sm"
+                  onClick={cycleQueueMode}
+                  active
                 />
-              ))}
+                <IconButton
+                  icon={Gauge}
+                  label={t('player.speed.cycle', 'Speed') + ` ${speedLabel}`}
+                  size="sm"
+                  onClick={handleSpeedCycle}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2" role="list">
-              <IconButton
-                icon={queueMeta.icon}
-                label={t(queueMeta.labelId, queueMeta.fallback)}
-                size="sm"
-                onClick={cycleQueueMode}
-                active
-              />
-              <IconButton
-                icon={Gauge}
-                label={t('player.speed.cycle', 'Speed') + ` ${speedLabel}`}
-                size="sm"
-                onClick={handleSpeedCycle}
-              />
               {actionGrid.map((action) => {
                 let onClick: (() => void) | undefined = action.onClick
                 let disabled = false
                 let activeState = false
 
-                if (action.id === 'scan') {
-                  onClick = handleScan
-                  disabled = loading
-                  activeState = loading
-                } else if (action.id === 'pip') {
+                if (action.id === 'pip') {
                   onClick = togglePiP
                   disabled = !hasVideoFrame || !nowPlaying
                   activeState = pipActive
@@ -463,7 +467,7 @@ function App() {
             {error && (
               <div className="flex items-center gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-100">
                 <span aria-hidden="true">⚠️</span>
-                <span>{t('library.error', 'Scan failed')}</span>
+                <span>{error}</span>
               </div>
             )}
 
@@ -480,27 +484,6 @@ function App() {
               </div>
             )}
 
-            {savedFolders.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.4em] text-white/40">
-                  {t('library.recentsTitle', 'Recent folders')}
-                </p>
-                <div className="flex flex-col gap-2">
-                  {savedFolders.map((folder) => (
-                    <button
-                      key={folder.id}
-                      type="button"
-                      className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-left text-sm transition hover:border-plasma/50"
-                      onClick={() => loadFromSavedFolder(folder.id)}
-                      disabled={loading}
-                    >
-                      <span>{folder.name}</span>
-                      <span className="text-xs text-white/40">↺</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </Panel>
 
           <Panel

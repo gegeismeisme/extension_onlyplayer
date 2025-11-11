@@ -46,6 +46,9 @@ export const catalogs: Record<LocaleKey, MessageCatalog> = {
     'library.error': 'Scan failed',
     'errors.noFSA': 'Browser cannot open folders',
     'library.recentsTitle': 'Recent folders',
+    'library.scanDesc': 'Pick a local folder of audio/video files',
+    'library.tapToReload': 'Tap to reopen',
+    'library.playbackPrefs': 'Playback',
   },
   'zh-CN': {
     'nav.library': '媒体库',
@@ -90,6 +93,9 @@ export const catalogs: Record<LocaleKey, MessageCatalog> = {
     'library.error': '扫描失败',
     'errors.noFSA': '浏览器无法打开文件夹',
     'library.recentsTitle': '最近目录',
+    'library.scanDesc': '选择本地音视频文件夹',
+    'library.tapToReload': '点击重新载入',
+    'library.playbackPrefs': '播放控制',
   },
 }
 
