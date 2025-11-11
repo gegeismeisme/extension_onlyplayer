@@ -156,6 +156,7 @@ function App() {
   const [hasVideoFrame, setHasVideoFrame] = useState(false)
   const [pipActive, setPipActive] = useState(false)
   const [prefsLoaded, setPrefsLoaded] = useState(false)
+  const [autoTried, setAutoTried] = useState(false)
 
   const queueMeta = queueModeMeta[queueMode]
   const speedIndex = speedSteps.findIndex((step) => Math.abs(step - playbackRate) < 0.01)
@@ -186,6 +187,18 @@ function App() {
   useEffect(() => {
     void refreshSavedFolders()
   }, [refreshSavedFolders])
+
+  useEffect(() => {
+    if (autoTried) return
+    if (savedFolders.length === 0) {
+      setAutoTried(true)
+      return
+    }
+    if (!library.length && !loading) {
+      setAutoTried(true)
+      void loadFromSavedFolder(savedFolders[0].id)
+    }
+  }, [autoTried, savedFolders, library.length, loading, loadFromSavedFolder])
 
   useEffect(() => {
     if (!prefsLoaded) return
@@ -288,9 +301,13 @@ function App() {
         }
       ).showDirectoryPicker()
       await loadFromDirectory(dirHandle)
+      console.log('[OnlyPlayer] directory picker success:', dirHandle.name)
     } catch (scanError) {
       if ((scanError as DOMException).name === 'AbortError') return
       console.error(scanError)
+      setTimeout(() => {
+        window.alert(t('library.error', 'Scan failed'))
+      }, 100)
     }
   }, [loadFromDirectory, t])
 
@@ -395,7 +412,10 @@ function App() {
                       icon={History}
                       label={folder.name}
                       description={t('library.tapToReload', 'Tap to reopen')}
-                      onClick={() => loadFromSavedFolder(folder.id)}
+                      onClick={() => {
+                        console.log('[OnlyPlayer] attempting reload', folder.id)
+                        void loadFromSavedFolder(folder.id)
+                      }}
                       disabled={loading}
                     />
                   ))}
@@ -403,24 +423,28 @@ function App() {
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-2" role="list">
               <p className="text-xs uppercase tracking-[0.4em] text-white/40">
                 {t('library.playbackPrefs', 'Playback')}
               </p>
               <div className="grid grid-cols-2 gap-2">
-                <IconButton
-                  icon={queueMeta.icon}
-                  label={t(queueMeta.labelId, queueMeta.fallback)}
-                  size="sm"
-                  onClick={cycleQueueMode}
-                  active
-                />
-                <IconButton
-                  icon={Gauge}
-                  label={t('player.speed.cycle', 'Speed') + ` ${speedLabel}`}
-                  size="sm"
-                  onClick={handleSpeedCycle}
-                />
+                <div role="listitem">
+                  <IconButton
+                    icon={queueMeta.icon}
+                    label={t(queueMeta.labelId, queueMeta.fallback)}
+                    size="sm"
+                    onClick={cycleQueueMode}
+                    active
+                  />
+                </div>
+                <div role="listitem">
+                  <IconButton
+                    icon={Gauge}
+                    label={t('player.speed.cycle', 'Speed') + ` ${speedLabel}`}
+                    size="sm"
+                    onClick={handleSpeedCycle}
+                  />
+                </div>
               </div>
             </div>
 
@@ -451,15 +475,16 @@ function App() {
                 }
 
                 return (
-                  <IconButton
-                    key={action.labelId}
-                    icon={action.icon}
-                    label={t(action.labelId, action.fallback)}
-                    size="sm"
-                    onClick={onClick}
-                    disabled={disabled}
-                    active={activeState}
-                  />
+                  <div role="listitem" key={action.labelId}>
+                    <IconButton
+                      icon={action.icon}
+                      label={t(action.labelId, action.fallback)}
+                      size="sm"
+                      onClick={onClick}
+                      disabled={disabled}
+                      active={activeState}
+                    />
+                  </div>
                 )
               })}
             </div>
@@ -525,14 +550,15 @@ function App() {
                       <span>{formatSeconds(currentTime)}</span>
                       <span>{formatSeconds(duration)}</span>
                     </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={duration || 1}
-                      value={currentTime}
-                      onChange={(event) => handleSeek(Number(event.target.value))}
-                      className="w-full accent-plasma"
-                    />
+                <input
+                  type="range"
+                  min={0}
+                  max={duration || 1}
+                  value={currentTime}
+                  aria-label={t('player.scrubber', 'Seek position')}
+                  onChange={(event) => handleSeek(Number(event.target.value))}
+                  className="w-full accent-plasma"
+                />
                     {nowPlaying && (
                       <div className="flex justify-between">
                         <span>{nowPlaying.ext.toUpperCase()}</span>
@@ -606,13 +632,14 @@ function App() {
                   </button>
                   <input
                     type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={muted ? 0 : volume}
-                    onChange={(event) => setVolume(Number(event.target.value))}
-                    className="flex-1 accent-plasma"
-                  />
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={muted ? 0 : volume}
+                  aria-label={t('player.volume', 'Volume')}
+                  onChange={(event) => setVolume(Number(event.target.value))}
+                  className="flex-1 accent-plasma"
+                />
                   <span className="text-xs text-white/60">{Math.round(volume * 100)}%</span>
                 </div>
                 <ul className="flex max-h-72 flex-col gap-2 overflow-auto pr-2" role="list">

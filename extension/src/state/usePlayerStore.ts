@@ -142,9 +142,11 @@ export const usePlayerStore = create<PlayerState>()(
         state.error = undefined
       })
       try {
+        console.log('[OnlyPlayer] scanning directory:', handle.name)
         const files = await scanDirectory(handle)
         await saveFolder(handle)
         await get().refreshSavedFolders()
+        console.log('[OnlyPlayer] files indexed:', files.length)
         set((state) => {
           revokeUrls(state.library)
           state.library = files
@@ -153,6 +155,7 @@ export const usePlayerStore = create<PlayerState>()(
           state.loading = false
         })
       } catch (error) {
+        console.error('[OnlyPlayer] scan failed', error)
         set((state) => {
           state.loading = false
           state.error =
@@ -170,6 +173,7 @@ export const usePlayerStore = create<PlayerState>()(
           const permission = await handleWithPerm.requestPermission({ mode: 'read' })
           if (permission === 'denied') return false
         }
+        console.log('[OnlyPlayer] reloading saved folder:', match.name)
         await get().loadFromDirectory(match.handle)
         return true
       } catch (error) {
