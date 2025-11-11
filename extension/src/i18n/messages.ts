@@ -51,6 +51,7 @@ export const catalogs: Record<LocaleKey, MessageCatalog> = {
     'library.scanDesc': 'Pick a local folder of audio/video files',
     'library.tapToReload': 'Tap to reopen',
     'library.playbackPrefs': 'Playback',
+    'action.openTab': 'Open in tab',
   },
   'zh-CN': {
     'nav.library': '媒体库',
@@ -100,6 +101,7 @@ export const catalogs: Record<LocaleKey, MessageCatalog> = {
     'library.scanDesc': '选择本地音视频文件夹',
     'library.tapToReload': '点击重新载入',
     'library.playbackPrefs': '播放控制',
+    'action.openTab': '在标签页打开',
   },
 }
 

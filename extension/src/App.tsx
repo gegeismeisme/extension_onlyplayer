@@ -363,6 +363,14 @@ function App() {
     setPlaybackRate(nextSpeed)
   }, [nextSpeed, setPlaybackRate])
 
+  const openFullTab = useCallback(() => {
+    if (chrome.runtime?.openOptionsPage) {
+      chrome.runtime.openOptionsPage()
+    } else {
+      window.open(chrome.runtime.getURL('index.html'), '_blank')
+    }
+  }, [])
+
   const handleSeek = useCallback(
     (value: number) => {
       const player = videoRef.current
@@ -379,16 +387,30 @@ function App() {
     <div className="min-h-screen bg-gradient-to-b from-ink via-black to-ink text-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 lg:py-12">
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-3xl">
-              <span aria-hidden="true">🎛️</span>
-            </div>
-            <div className="text-xs uppercase tracking-[0.6em] text-white/70">
-              <span aria-hidden="true">OnlyPlayer</span>
-              <span className="sr-only">OnlyPlayer</span>
-            </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.6em] text-white/60">OnlyPlayer</p>
+            <h1 className="font-display text-3xl">Local Media Deck</h1>
           </div>
-          <LocaleSwitcher />
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold hover:border-plasma hover:text-plasma disabled:opacity-60"
+              onClick={handleScan}
+              disabled={loading}
+            >
+              <FolderOpen size={18} />
+              {loading ? t('library.scanning', 'Scanning media...') : t('action.scan', 'Open folder')}
+            </button>
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold hover:border-plasma hover:text-plasma"
+              onClick={openFullTab}
+            >
+              <Video size={18} />
+              {t('action.openTab', 'Open in tab')}
+            </button>
+            <LocaleSwitcher />
+          </div>
         </header>
 
         <section className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)_260px]">

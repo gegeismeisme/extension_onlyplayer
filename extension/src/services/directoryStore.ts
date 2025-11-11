@@ -11,10 +11,13 @@ const DB_NAME = 'onlyplayer'
 const STORE_NAME = 'folders'
 
 async function getDB() {
-  return openDB(DB_NAME, 1, {
-    upgrade(db) {
+  return openDB(DB_NAME, 2, {
+    upgrade(db, oldVersion) {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME)
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+      } else if (oldVersion === 1) {
+        db.deleteObjectStore(STORE_NAME)
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' })
       }
     },
   })
