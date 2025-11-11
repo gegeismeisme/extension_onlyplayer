@@ -14,11 +14,18 @@ type PlayerState = {
   mode: PlayerMode
   loading: boolean
   error?: string
+  playbackRate: number
+  shuffle: boolean
+  loopQueue: boolean
   setView: (view: PlayerView) => void
   setMode: (mode: PlayerMode) => void
   focusItem: (id: string) => void
   togglePlay: () => void
   setPlaying: (val: boolean) => void
+  setPlaybackRate: (rate: number) => void
+  toggleShuffle: () => void
+  toggleLoop: () => void
+  hydratePreferences: (prefs: Partial<Pick<PlayerState, 'playbackRate' | 'shuffle' | 'loopQueue'>>) => void
   loadFromDirectory: (handle: FileSystemDirectoryHandle) => Promise<void>
   clearLibrary: () => void
   playNext: () => void
@@ -40,6 +47,9 @@ export const usePlayerStore = create<PlayerState>()(
     mode: 'hybrid',
     loading: false,
     error: undefined,
+    playbackRate: 1,
+    shuffle: false,
+    loopQueue: false,
     setView: (view) =>
       set((state) => {
         state.view = view
@@ -64,6 +74,30 @@ export const usePlayerStore = create<PlayerState>()(
     setPlaying: (val) =>
       set((state) => {
         state.playing = val
+      }),
+    setPlaybackRate: (rate) =>
+      set((state) => {
+        state.playbackRate = rate
+      }),
+    toggleShuffle: () =>
+      set((state) => {
+        state.shuffle = !state.shuffle
+      }),
+    toggleLoop: () =>
+      set((state) => {
+        state.loopQueue = !state.loopQueue
+      }),
+    hydratePreferences: (prefs) =>
+      set((state) => {
+        if (typeof prefs.playbackRate === 'number' && prefs.playbackRate > 0) {
+          state.playbackRate = prefs.playbackRate
+        }
+        if (typeof prefs.shuffle === 'boolean') {
+          state.shuffle = prefs.shuffle
+        }
+        if (typeof prefs.loopQueue === 'boolean') {
+          state.loopQueue = prefs.loopQueue
+        }
       }),
     loadFromDirectory: async (handle) => {
       set((state) => {
@@ -99,10 +133,27 @@ export const usePlayerStore = create<PlayerState>()(
     playNext: () =>
       set((state) => {
         if (!state.nowPlayingId) return
-        const idx = state.library.findIndex((item) => item.id === state.nowPlayingId)
-        if (idx >= 0 && idx < state.library.length - 1) {
-          state.nowPlayingId = state.library[idx + 1].id
+        if (state.library.length === 0) return
+
+        if (state.shuffle) {
+          const available = state.library.filter((item) => item.id !== state.nowPlayingId)
+          if (available.length === 0) return
+          const next = available[Math.floor(Math.random() * available.length)]
+          state.nowPlayingId = next.id
           state.playing = true
+          return
+        }
+
+        const idx = state.library.findIndex((item) => item.id === state.nowPlayingId)
+        if (idx >= 0) {
+          const nextIndex =
+            idx < state.library.length - 1 ? idx + 1 : state.loopQueue ? 0 : idx
+          if (nextIndex !== idx) {
+            state.nowPlayingId = state.library[nextIndex].id
+            state.playing = true
+          } else if (state.loopQueue) {
+            state.playing = false
+          }
         }
       }),
     playPrevious: () =>

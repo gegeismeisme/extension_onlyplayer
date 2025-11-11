@@ -50,20 +50,21 @@ const libraryNav = [
 ]
 
 const actionGrid: Array<{
+  id: string
   icon: LucideIcon
   labelId: string
   fallback: string
   onClick?: () => void
 }> = [
-  { icon: ScanLine, labelId: 'action.scan', fallback: 'Scan folders' },
-  { icon: Shuffle, labelId: 'action.shuffle', fallback: 'Shuffle play' },
-  { icon: Repeat, labelId: 'action.loop', fallback: 'Loop queue' },
-  { icon: PictureInPicture, labelId: 'action.pip', fallback: 'Picture in picture' },
-  { icon: Camera, labelId: 'action.snapshot', fallback: 'Snapshot' },
-  { icon: Repeat2, labelId: 'action.repeat', fallback: 'A-B repeat' },
-  { icon: SlidersHorizontal, labelId: 'action.eq', fallback: 'Equalizer presets' },
-  { icon: Keyboard, labelId: 'action.keymaps', fallback: 'Shortcut map' },
-  { icon: UserRound, labelId: 'action.profile', fallback: 'Profiles' },
+  { id: 'scan', icon: ScanLine, labelId: 'action.scan', fallback: 'Scan folders' },
+  { id: 'shuffle', icon: Shuffle, labelId: 'action.shuffle', fallback: 'Shuffle play' },
+  { id: 'loop', icon: Repeat, labelId: 'action.loop', fallback: 'Loop queue' },
+  { id: 'pip', icon: PictureInPicture, labelId: 'action.pip', fallback: 'Picture in picture' },
+  { id: 'snapshot', icon: Camera, labelId: 'action.snapshot', fallback: 'Snapshot' },
+  { id: 'repeat-ab', icon: Repeat2, labelId: 'action.repeat', fallback: 'A-B repeat' },
+  { id: 'eq', icon: SlidersHorizontal, labelId: 'action.eq', fallback: 'Equalizer presets' },
+  { id: 'keymaps', icon: Keyboard, labelId: 'action.keymaps', fallback: 'Shortcut map' },
+  { id: 'profile', icon: UserRound, labelId: 'action.profile', fallback: 'Profiles' },
 ]
 
 const speedDeck = ['0.5×', '1×', '1.5×', '2×']
@@ -126,6 +127,12 @@ function App() {
     playNext,
     playPrevious,
     setPlaying,
+    playbackRate,
+    setPlaybackRate,
+    shuffle,
+    toggleShuffle,
+    loopQueue,
+    toggleLoop,
   } = usePlayerStore()
 
   const queue = library
@@ -172,6 +179,12 @@ function App() {
       player.pause()
     }
   }, [playing, setPlaying, nowPlaying?.url])
+
+  useEffect(() => {
+    const player = videoRef.current
+    if (!player) return
+    player.playbackRate = playbackRate
+  }, [playbackRate])
 
   useEffect(() => {
     const player = videoRef.current
@@ -229,13 +242,6 @@ function App() {
     }
   }
 
-  const actions = useMemo(
-    () =>
-      actionGrid.map((action, index) =>
-        index === 0 ? { ...action, onClick: handleScan } : action,
-      ),
-    [handleScan],
-  )
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-ink via-black to-ink text-white">
@@ -272,17 +278,39 @@ function App() {
             </div>
 
             <div className="grid grid-cols-3 gap-2" role="list">
-              {actions.map((action) => (
-                <IconButton
-                  key={action.labelId}
-                  icon={action.icon}
-                  label={t(action.labelId, action.fallback)}
-                  size="sm"
-                  onClick={action.onClick}
-                  disabled={loading && action.labelId === 'action.scan'}
-                  active={loading && action.labelId === 'action.scan'}
-                />
-              ))}
+              {actionGrid.map((action) => {
+                let onClick: (() => void) | undefined = action.onClick
+                let disabled = false
+                let activeState = false
+
+                if (action.id === 'scan') {
+                  onClick = handleScan
+                  disabled = loading
+                  activeState = loading
+                } else if (action.id === 'shuffle') {
+                  onClick = toggleShuffle
+                  activeState = shuffle
+                } else if (action.id === 'loop') {
+                  onClick = toggleLoop
+                  activeState = loopQueue
+                }
+
+                if (!onClick) {
+                  disabled = true
+                }
+
+                return (
+                  <IconButton
+                    key={action.labelId}
+                    icon={action.icon}
+                    label={t(action.labelId, action.fallback)}
+                    size="sm"
+                    onClick={onClick}
+                    disabled={disabled}
+                    active={activeState}
+                  />
+                )
+              })}
             </div>
 
             {error && (
@@ -455,18 +483,24 @@ function App() {
               <div className="rounded-2xl border border-white/10 bg-black/30 p-4 space-y-3">
                 <p className="sr-only">{t('player.speed', 'Speed deck')}</p>
                 <div className="grid grid-cols-4 gap-2">
-                  {speedDeck.map((chip) => (
-                    <div
-                      key={chip}
-                      className={cn(
-                        'flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-sm',
-                        chip === '1×' && 'border-plasma/60 text-plasma shadow-neon',
-                      )}
-                      aria-hidden="true"
-                    >
-                      {chip}
-                    </div>
-                  ))}
+                  {speedDeck.map((chip) => {
+                    const rate = Number(chip.replace('×', ''))
+                    const activeRate = Math.abs(playbackRate - rate) < 0.01
+                    return (
+                      <button
+                        key={chip}
+                        type="button"
+                        className={cn(
+                          'flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-sm transition hover:border-white/30',
+                          activeRate && 'border-plasma/60 text-plasma shadow-neon',
+                        )}
+                        onClick={() => setPlaybackRate(rate)}
+                        aria-label={`${chip} speed`}
+                      >
+                        {chip}
+                      </button>
+                    )
+                  })}
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-4 text-2xl">
