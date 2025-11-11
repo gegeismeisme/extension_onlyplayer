@@ -28,7 +28,7 @@ export function IconButton({
     <button
       type="button"
       className={cn(
-        'rounded-2xl border border-white/10 bg-white/5 font-display transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-plasma',
+        'rounded-2xl border border-white/10 bg-white/5 font-display transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-plasma disabled:cursor-not-allowed disabled:opacity-40',
         active && 'border-plasma/70 bg-white/10 shadow-neon text-plasma',
         muted && 'text-white/30',
         sizeMap[size],

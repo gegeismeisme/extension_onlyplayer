@@ -1,10 +1,18 @@
 import type { I18n } from '@lingui/core'
+import { useLingui } from '@lingui/react'
+import {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+  type ReactNode,
+} from 'react'
 import { IconButton } from '@/components/IconButton'
 import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 import { Panel } from '@/components/Panel'
-import { usePlayerStore, type PlayerMode } from '@/state/usePlayerStore'
 import { cn } from '@/utils/cn'
-import { useLingui } from '@lingui/react'
+import { usePlayerStore, type PlayerMode } from '@/state/usePlayerStore'
 
 const libraryNav = [
   { id: 'library', glyph: '🗂️', labelId: 'nav.library', fallback: 'Library' },
@@ -14,7 +22,12 @@ const libraryNav = [
   { id: 'recents', glyph: '🕑', labelId: 'nav.recents', fallback: 'Recents' },
 ]
 
-const actionGrid = [
+const actionGrid: Array<{
+  glyph: string
+  labelId: string
+  fallback: string
+  onClick?: () => void
+}> = [
   { glyph: '🛰️', labelId: 'action.scan', fallback: 'Scan folders' },
   { glyph: '🔀', labelId: 'action.shuffle', fallback: 'Shuffle play' },
   { glyph: '🔁', labelId: 'action.loop', fallback: 'Loop queue' },
@@ -26,14 +39,7 @@ const actionGrid = [
   { glyph: '👤', labelId: 'action.profile', fallback: 'Profiles' },
 ]
 
-const transportIcons = ['⏮️', '⏯️', '⏭️', '⏹️']
-
 const speedDeck = ['0.5×', '1×', '1.5×', '2×']
-
-const statusTiles = [
-  { glyph: '⚡', labelId: 'status.cpu', fallback: 'GPU boost' },
-  { glyph: '🌊', labelId: 'status.wave', fallback: 'Visualizer' },
-]
 
 const modeIcons: Array<{ id: PlayerMode; glyph: string; labelId: string; fallback: string }> =
   [
@@ -42,12 +48,165 @@ const modeIcons: Array<{ id: PlayerMode; glyph: string; labelId: string; fallbac
     { id: 'hybrid', glyph: '🔁', labelId: 'player.mode.hybrid', fallback: 'Hybrid mode' },
   ]
 
+const glyphForKind: Record<'audio' | 'video', string> = {
+  audio: '🎧',
+  video: '🎞️',
+}
+
 const text = (i18n: I18n, id: string, message: string) => i18n._({ id, message })
+
+const formatSeconds = (value: number) => {
+  if (!Number.isFinite(value) || value <= 0) return '--:--'
+  const minutes = Math.floor(value / 60)
+  const seconds = Math.floor(value % 60)
+  return `${minutes.toString().padStart(2, '0')}:${seconds
+    .toString()
+    .padStart(2, '0')}`
+}
+
+const formatSize = (bytes: number, unitLabel: string) => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return `0 ${unitLabel}`
+  return `${(bytes / 1024 / 1024).toFixed(1)} ${unitLabel}`
+}
+
+const accentFromName = (name: string) =>
+  name.replace(/\.[^/.]+$/, '').slice(0, 2).toUpperCase() || '??'
+
+const EmptyState = ({ children }: { children: ReactNode }) => (
+  <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/10 bg-black/20 p-6 text-center text-white/60">
+    <span aria-hidden="true" className="text-3xl">
+      📂
+    </span>
+    {children}
+  </div>
+)
 
 function App() {
   const { i18n } = useLingui()
-  const { queue, nowPlaying, togglePlay, playing, mode, setMode, focusItem } =
-    usePlayerStore()
+  const {
+    library,
+    nowPlayingId,
+    loadFromDirectory,
+    focusItem,
+    togglePlay,
+    playing,
+    mode,
+    setMode,
+    loading,
+    error,
+    playNext,
+    playPrevious,
+    setPlaying,
+  } = usePlayerStore()
+
+  const queue = library
+  const nowPlaying = useMemo(
+    () => queue.find((item) => item.id === nowPlayingId),
+    [queue, nowPlayingId],
+  )
+  const unitLabel = text(i18n, 'player.unit.mb', 'MB')
+
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [progress, setProgress] = useState(0)
+  const [duration, setDuration] = useState(0)
+
+  useEffect(() => {
+    setProgress(0)
+    setDuration(0)
+  }, [nowPlaying?.id])
+
+  useEffect(() => {
+    const player = videoRef.current
+    if (!player) return
+
+    if (nowPlaying?.url) {
+      if (player.src !== nowPlaying.url) {
+        player.src = nowPlaying.url
+        player.load()
+      }
+    } else {
+      player.removeAttribute('src')
+      player.load()
+    }
+  }, [nowPlaying?.url])
+
+  useEffect(() => {
+    const player = videoRef.current
+    if (!player) return
+    if (!nowPlaying?.url) return
+
+    if (playing) {
+      player.play().catch(() => {
+        setPlaying(false)
+      })
+    } else {
+      player.pause()
+    }
+  }, [playing, setPlaying, nowPlaying?.url])
+
+  useEffect(() => {
+    const player = videoRef.current
+    if (!player) return
+
+    const update = () => {
+      if (player.duration) {
+        setDuration(player.duration)
+      }
+      setProgress(player.currentTime)
+    }
+
+    const handleEnded = () => {
+      setPlaying(false)
+      playNext()
+    }
+
+    player.addEventListener('timeupdate', update)
+    player.addEventListener('loadedmetadata', update)
+    player.addEventListener('ended', handleEnded)
+
+    return () => {
+      player.removeEventListener('timeupdate', update)
+      player.removeEventListener('loadedmetadata', update)
+      player.removeEventListener('ended', handleEnded)
+    }
+  }, [playNext, setPlaying])
+
+  const progressPercent = duration ? Math.min((progress / duration) * 100, 100) : 0
+
+  const handleScan = useCallback(async () => {
+    if (!('showDirectoryPicker' in window)) {
+      window.alert(text(i18n, 'errors.noFSA', 'Browser cannot open folders'))
+      return
+    }
+    try {
+      const dirHandle = await (
+        window as typeof window & {
+          showDirectoryPicker: () => Promise<FileSystemDirectoryHandle>
+        }
+      ).showDirectoryPicker()
+      await loadFromDirectory(dirHandle)
+    } catch (scanError) {
+      if ((scanError as DOMException).name === 'AbortError') return
+      console.error(scanError)
+    }
+  }, [i18n, loadFromDirectory])
+
+  const handleStop = () => {
+    setPlaying(false)
+    const player = videoRef.current
+    if (player) {
+      player.pause()
+      player.currentTime = 0
+    }
+  }
+
+  const actions = useMemo(
+    () =>
+      actionGrid.map((action, index) =>
+        index === 0 ? { ...action, onClick: handleScan } : action,
+      ),
+    [handleScan],
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-ink via-black to-ink text-white">
@@ -88,15 +247,38 @@ function App() {
             </div>
 
             <div className="grid grid-cols-3 gap-2" role="list">
-              {actionGrid.map((action) => (
+              {actions.map((action) => (
                 <IconButton
                   key={action.labelId}
                   glyph={action.glyph}
                   label={text(i18n, action.labelId, action.fallback)}
                   size="sm"
+                  onClick={action.onClick}
+                  disabled={loading && action.labelId === 'action.scan'}
+                  active={loading && action.labelId === 'action.scan'}
                 />
               ))}
             </div>
+
+            {error && (
+              <div className="flex items-center gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+                <span aria-hidden="true">⚠️</span>
+                <span>{text(i18n, 'library.error', 'Scan failed')}</span>
+              </div>
+            )}
+
+            {queue.length === 0 && !loading && (
+              <EmptyState>
+                <span>{text(i18n, 'library.empty', 'Pick a folder to begin')}</span>
+              </EmptyState>
+            )}
+
+            {loading && (
+              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80">
+                <span aria-hidden="true">⏳</span>
+                <span>{text(i18n, 'library.scanning', 'Scanning media...')}</span>
+              </div>
+            )}
           </Panel>
 
           <Panel
@@ -104,42 +286,87 @@ function App() {
             label={text(i18n, 'player.controls', 'Transport')}
             className="space-y-6"
           >
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-2xl">
-                    <span aria-hidden="true">{nowPlaying?.glyph ?? '⏺️'}</span>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.4em] text-white/50">
-                      {text(i18n, 'player.nowPlaying', 'Now playing')}
-                    </p>
-                    <p className="font-display text-2xl">
-                      <span aria-hidden="true">{nowPlaying?.accent ?? '—'}</span>
-                      <span className="sr-only">
-                        {nowPlaying ? `${nowPlaying.accent} ${nowPlaying.duration}` : 'idle'}
+            <div className="rounded-3xl border border-white/10 bg-black/40 p-4 lg:p-6">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+                <div className="aspect-video w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-black to-slate-900">
+                  <video
+                    ref={videoRef}
+                    className="h-full w-full object-cover"
+                    playsInline
+                    controls={false}
+                  />
+                </div>
+                <div className="flex flex-col justify-between gap-3 rounded-3xl border border-white/5 bg-white/5 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-2xl">
+                      <span aria-hidden="true">
+                        {nowPlaying ? glyphForKind[nowPlaying.kind] : '⏺️'}
                       </span>
-                    </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.4em] text-white/50">
+                        {text(i18n, 'player.nowPlaying', 'Now playing')}
+                      </p>
+                      <p className="font-display text-xl">
+                        {nowPlaying?.name ?? text(i18n, 'player.none', 'Idle')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-xs text-white/60">
+                    <div className="flex justify-between">
+                      <span>{formatSeconds(progress)}</span>
+                      <span>{formatSeconds(duration)}</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-plasma to-amber transition-all"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    {nowPlaying && (
+                      <div className="flex justify-between">
+                        <span>{nowPlaying.ext.toUpperCase()}</span>
+                        <span>{formatSize(nowPlaying.size, unitLabel)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="text-sm text-white/60">{nowPlaying?.duration}</div>
-              </div>
-              <div className="h-2 w-full rounded-full bg-white/10">
-                <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-plasma to-amber"></div>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap gap-2">
-                {transportIcons.map((glyph) => (
-                  <IconButton
-                    key={glyph}
-                    glyph={glyph}
-                    label={text(i18n, 'player.controls', 'Transport')}
-                    active={glyph === '⏯️' && playing}
-                    onClick={glyph === '⏯️' ? togglePlay : undefined}
-                  />
-                ))}
+                <IconButton
+                  glyph="⏮️"
+                  label={text(i18n, 'player.prev', 'Previous item')}
+                  onClick={playPrevious}
+                  disabled={!nowPlaying}
+                />
+                <IconButton
+                  glyph="⏯️"
+                  label={text(i18n, 'player.toggle', 'Play or pause')}
+                  active={playing}
+                  onClick={() => {
+                    if (!nowPlaying && queue[0]) {
+                      focusItem(queue[0].id)
+                      return
+                    }
+                    togglePlay()
+                  }}
+                  disabled={!nowPlaying && queue.length === 0}
+                />
+                <IconButton
+                  glyph="⏭️"
+                  label={text(i18n, 'player.next', 'Next item')}
+                  onClick={playNext}
+                  disabled={!nowPlaying}
+                />
+                <IconButton
+                  glyph="⏹️"
+                  label={text(i18n, 'player.stop', 'Stop playback')}
+                  onClick={handleStop}
+                  disabled={!nowPlaying}
+                />
               </div>
               <div className="flex gap-2">
                 {modeIcons.map((item) => (
@@ -158,26 +385,30 @@ function App() {
             <div className="grid gap-3 lg:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
                 <p className="sr-only">{text(i18n, 'player.queue', 'Up next')}</p>
-                <ul className="flex flex-col gap-2" role="list">
+                <ul className="flex max-h-72 flex-col gap-2 overflow-auto pr-2" role="list">
                   {queue.map((item) => (
                     <li key={item.id}>
                       <button
                         className={cn(
-                          'flex w-full items-center justify-between rounded-2xl border border-white/5 bg-white/5 p-3 text-left',
+                          'flex w-full items-center justify-between rounded-2xl border border-white/5 bg-white/5 p-3 text-left transition hover:border-plasma/50',
                           nowPlaying?.id === item.id && 'border-plasma/60 bg-white/10',
                         )}
                         onClick={() => focusItem(item.id)}
-                        aria-label={`${item.glyph} ${item.duration}`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black/30 text-xl">
-                            <span aria-hidden="true">{item.glyph}</span>
+                            <span aria-hidden="true">{glyphForKind[item.kind]}</span>
                           </div>
                           <div>
-                            <span className="font-display text-lg">{item.accent}</span>
+                            <p className="text-sm font-semibold">{item.name}</p>
+                            <p className="text-xs text-white/50">
+                              {accentFromName(item.name)} · {item.ext.toUpperCase()}
+                            </p>
                           </div>
                         </div>
-                        <span className="text-sm text-white/60">{item.duration}</span>
+                        <span className="text-xs text-white/60">
+                          {formatSize(item.size, unitLabel)}
+                        </span>
                       </button>
                     </li>
                   ))}
@@ -200,16 +431,16 @@ function App() {
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
-                  {statusTiles.map((tile) => (
-                    <div
-                      key={tile.labelId}
-                      className="flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-4 text-2xl"
-                      title={text(i18n, tile.labelId, tile.fallback)}
-                    >
-                      <span aria-hidden="true">{tile.glyph}</span>
-                      <span className="sr-only">{text(i18n, tile.labelId, tile.labelId)}</span>
-                    </div>
-                  ))}
+                  <div className="flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-4 text-2xl">
+                    <span aria-hidden="true">{playing ? '⚡' : '💤'}</span>
+                    <span className="sr-only">
+                      {text(i18n, 'status.cpu', 'GPU boost')}
+                    </span>
+                  </div>
+                  <div className="flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-4 text-2xl">
+                    <span aria-hidden="true">🌊</span>
+                    <span className="sr-only">{text(i18n, 'status.wave', 'Visualizer')}</span>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,44 +1,45 @@
+import { scanDirectory } from '@/services/folderScanner'
+import type { MediaItem } from '@/types/media'
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
-export type MediaKind = 'audio' | 'video'
 export type PlayerView = 'library' | 'player' | 'settings'
 export type PlayerMode = 'hybrid' | 'audio' | 'video'
 
-export type MediaItem = {
-  id: string
-  glyph: string
-  kind: MediaKind
-  accent: string
-  duration: string
-}
-
 type PlayerState = {
-  queue: MediaItem[]
-  nowPlaying?: MediaItem
+  library: MediaItem[]
+  nowPlayingId?: string
   playing: boolean
   view: PlayerView
   mode: PlayerMode
+  loading: boolean
+  error?: string
   setView: (view: PlayerView) => void
   setMode: (mode: PlayerMode) => void
   focusItem: (id: string) => void
   togglePlay: () => void
+  setPlaying: (val: boolean) => void
+  loadFromDirectory: (handle: FileSystemDirectoryHandle) => Promise<void>
+  clearLibrary: () => void
+  playNext: () => void
+  playPrevious: () => void
 }
 
-const demoQueue: MediaItem[] = [
-  { id: 'seq-01', glyph: '🎞️', kind: 'video', accent: 'V1', duration: '12:47' },
-  { id: 'seq-02', glyph: '🎧', kind: 'audio', accent: 'A2', duration: '58:03' },
-  { id: 'seq-03', glyph: '🎬', kind: 'video', accent: 'V2', duration: '02:13' },
-  { id: 'seq-04', glyph: '🎹', kind: 'audio', accent: 'A7', duration: '34:55' },
-]
+const revokeUrls = (items: MediaItem[]) => {
+  items.forEach((item) => {
+    URL.revokeObjectURL(item.url)
+  })
+}
 
 export const usePlayerStore = create<PlayerState>()(
-  immer((set) => ({
-    queue: demoQueue,
-    nowPlaying: demoQueue[0],
+  immer((set, get) => ({
+    library: [],
+    nowPlayingId: undefined,
     playing: false,
     view: 'library',
     mode: 'hybrid',
+    loading: false,
+    error: undefined,
     setView: (view) =>
       set((state) => {
         state.view = view
@@ -49,14 +50,69 @@ export const usePlayerStore = create<PlayerState>()(
       }),
     focusItem: (id) =>
       set((state) => {
-        const target = state.queue.find((item) => item.id === id)
-        if (target) {
-          state.nowPlaying = target
+        if (state.nowPlayingId === id) return
+        const exists = state.library.some((item) => item.id === id)
+        if (exists) {
+          state.nowPlayingId = id
+          state.playing = true
         }
       }),
     togglePlay: () =>
       set((state) => {
         state.playing = !state.playing
+      }),
+    setPlaying: (val) =>
+      set((state) => {
+        state.playing = val
+      }),
+    loadFromDirectory: async (handle) => {
+      set((state) => {
+        state.loading = true
+        state.error = undefined
+      })
+      try {
+        const files = await scanDirectory(handle)
+        set((state) => {
+          revokeUrls(state.library)
+          state.library = files
+          state.nowPlayingId = files[0]?.id
+          state.playing = false
+          state.loading = false
+        })
+      } catch (error) {
+        set((state) => {
+          state.loading = false
+          state.error =
+            error instanceof Error ? error.message : 'Unable to read directory'
+        })
+      }
+    },
+    clearLibrary: () => {
+      const { library } = get()
+      revokeUrls(library)
+      set((state) => {
+        state.library = []
+        state.nowPlayingId = undefined
+        state.playing = false
+      })
+    },
+    playNext: () =>
+      set((state) => {
+        if (!state.nowPlayingId) return
+        const idx = state.library.findIndex((item) => item.id === state.nowPlayingId)
+        if (idx >= 0 && idx < state.library.length - 1) {
+          state.nowPlayingId = state.library[idx + 1].id
+          state.playing = true
+        }
+      }),
+    playPrevious: () =>
+      set((state) => {
+        if (!state.nowPlayingId) return
+        const idx = state.library.findIndex((item) => item.id === state.nowPlayingId)
+        if (idx > 0) {
+          state.nowPlayingId = state.library[idx - 1].id
+          state.playing = true
+        }
       }),
   })),
 )
