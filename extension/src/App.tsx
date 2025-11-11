@@ -12,44 +12,76 @@ import { Panel } from '@/components/Panel'
 import { cn } from '@/utils/cn'
 import { usePlayerStore, type PlayerMode } from '@/state/usePlayerStore'
 import { useLocale } from '@/i18n/provider'
+import type { LucideIcon } from 'lucide-react'
+import {
+  Activity,
+  Camera,
+  Clapperboard,
+  Gauge,
+  Headphones,
+  History,
+  Keyboard,
+  Library,
+  Moon,
+  Music3,
+  PictureInPicture,
+  Play,
+  Repeat,
+  Repeat2,
+  ScanLine,
+  Settings2,
+  Shuffle,
+  SlidersHorizontal,
+  Square,
+  Star,
+  StepBack,
+  StepForward,
+  UserRound,
+  Video,
+  Pause,
+} from 'lucide-react'
 
 const libraryNav = [
-  { id: 'library', glyph: '🗂️', labelId: 'nav.library', fallback: 'Library' },
-  { id: 'audio', glyph: '🎧', labelId: 'nav.audio', fallback: 'Audio focus' },
-  { id: 'video', glyph: '🎬', labelId: 'nav.video', fallback: 'Video focus' },
-  { id: 'favorites', glyph: '⭐', labelId: 'nav.favorites', fallback: 'Favorites' },
-  { id: 'recents', glyph: '🕑', labelId: 'nav.recents', fallback: 'Recents' },
+  { id: 'library', icon: Library, labelId: 'nav.library', fallback: 'Library' },
+  { id: 'audio', icon: Headphones, labelId: 'nav.audio', fallback: 'Audio focus' },
+  { id: 'video', icon: Clapperboard, labelId: 'nav.video', fallback: 'Video focus' },
+  { id: 'favorites', icon: Star, labelId: 'nav.favorites', fallback: 'Favorites' },
+  { id: 'recents', icon: History, labelId: 'nav.recents', fallback: 'Recents' },
 ]
 
 const actionGrid: Array<{
-  glyph: string
+  icon: LucideIcon
   labelId: string
   fallback: string
   onClick?: () => void
 }> = [
-  { glyph: '🛰️', labelId: 'action.scan', fallback: 'Scan folders' },
-  { glyph: '🔀', labelId: 'action.shuffle', fallback: 'Shuffle play' },
-  { glyph: '🔁', labelId: 'action.loop', fallback: 'Loop queue' },
-  { glyph: '🪟', labelId: 'action.pip', fallback: 'Picture in picture' },
-  { glyph: '📸', labelId: 'action.snapshot', fallback: 'Snapshot' },
-  { glyph: '➿', labelId: 'action.repeat', fallback: 'A-B repeat' },
-  { glyph: '🎚️', labelId: 'action.eq', fallback: 'Equalizer presets' },
-  { glyph: '⌨️', labelId: 'action.keymaps', fallback: 'Shortcut map' },
-  { glyph: '👤', labelId: 'action.profile', fallback: 'Profiles' },
+  { icon: ScanLine, labelId: 'action.scan', fallback: 'Scan folders' },
+  { icon: Shuffle, labelId: 'action.shuffle', fallback: 'Shuffle play' },
+  { icon: Repeat, labelId: 'action.loop', fallback: 'Loop queue' },
+  { icon: PictureInPicture, labelId: 'action.pip', fallback: 'Picture in picture' },
+  { icon: Camera, labelId: 'action.snapshot', fallback: 'Snapshot' },
+  { icon: Repeat2, labelId: 'action.repeat', fallback: 'A-B repeat' },
+  { icon: SlidersHorizontal, labelId: 'action.eq', fallback: 'Equalizer presets' },
+  { icon: Keyboard, labelId: 'action.keymaps', fallback: 'Shortcut map' },
+  { icon: UserRound, labelId: 'action.profile', fallback: 'Profiles' },
 ]
 
 const speedDeck = ['0.5×', '1×', '1.5×', '2×']
 
-const modeIcons: Array<{ id: PlayerMode; glyph: string; labelId: string; fallback: string }> =
-  [
-    { id: 'audio', glyph: '🔊', labelId: 'player.mode.audio', fallback: 'Audio mode' },
-    { id: 'video', glyph: '📺', labelId: 'player.mode.video', fallback: 'Video mode' },
-    { id: 'hybrid', glyph: '🔁', labelId: 'player.mode.hybrid', fallback: 'Hybrid mode' },
-  ]
+const modeIcons: Array<{
+  id: PlayerMode
+  icon: LucideIcon
+  labelId: string
+  fallback: string
+}> = [
+  { id: 'audio', icon: Headphones, labelId: 'player.mode.audio', fallback: 'Audio mode' },
+  { id: 'video', icon: Video, labelId: 'player.mode.video', fallback: 'Video mode' },
+  { id: 'hybrid', icon: Shuffle, labelId: 'player.mode.hybrid', fallback: 'Hybrid mode' },
+]
 
-const glyphForKind: Record<'audio' | 'video', string> = {
-  audio: '🎧',
-  video: '🎞️',
+const iconForKind: Record<'audio' | 'video', LucideIcon> = {
+  audio: Music3,
+  video: Video,
 }
 
 const formatSeconds = (value: number) => {
@@ -222,16 +254,12 @@ function App() {
         </header>
 
         <section className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_260px]">
-          <Panel
-            glyph="🗂️"
-            label={t('nav.library', 'Library')}
-            className="space-y-5"
-          >
+          <Panel icon={Library} label={t('nav.library', 'Library')} className="space-y-5">
             <div className="flex flex-wrap gap-2">
               {libraryNav.map((item) => (
                 <IconButton
                   key={item.id}
-                  glyph={item.glyph}
+                  icon={item.icon}
                   label={t(item.labelId, item.fallback)}
                   size="md"
                   onClick={() => {
@@ -247,7 +275,7 @@ function App() {
               {actions.map((action) => (
                 <IconButton
                   key={action.labelId}
-                  glyph={action.glyph}
+                  icon={action.icon}
                   label={t(action.labelId, action.fallback)}
                   size="sm"
                   onClick={action.onClick}
@@ -279,7 +307,7 @@ function App() {
           </Panel>
 
           <Panel
-            glyph="🎚️"
+            icon={SlidersHorizontal}
             label={t('player.controls', 'Transport')}
             className="space-y-6"
           >
@@ -296,9 +324,12 @@ function App() {
                 <div className="flex flex-col justify-between gap-3 rounded-3xl border border-white/5 bg-white/5 p-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-2xl">
-                      <span aria-hidden="true">
-                        {nowPlaying ? glyphForKind[nowPlaying.kind] : '⏺️'}
-                      </span>
+                      {(() => {
+                        const Icon = nowPlaying ? iconForKind[nowPlaying.kind] : Play
+                        return (
+                          <Icon size={22} strokeWidth={1.7} aria-hidden="true" className="text-white" />
+                        )
+                      })()}
                     </div>
                     <div>
                       <p className="text-xs uppercase tracking-[0.4em] text-white/50">
@@ -334,13 +365,13 @@ function App() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap gap-2">
                 <IconButton
-                  glyph="⏮️"
+                  icon={StepBack}
                   label={t('player.prev', 'Previous item')}
                   onClick={playPrevious}
                   disabled={!nowPlaying}
                 />
                 <IconButton
-                  glyph="⏯️"
+                  icon={playing ? Pause : Play}
                   label={t('player.toggle', 'Play or pause')}
                   active={playing}
                   onClick={() => {
@@ -353,13 +384,13 @@ function App() {
                   disabled={!nowPlaying && queue.length === 0}
                 />
                 <IconButton
-                  glyph="⏭️"
+                  icon={StepForward}
                   label={t('player.next', 'Next item')}
                   onClick={playNext}
                   disabled={!nowPlaying}
                 />
                 <IconButton
-                  glyph="⏹️"
+                  icon={Square}
                   label={t('player.stop', 'Stop playback')}
                   onClick={handleStop}
                   disabled={!nowPlaying}
@@ -369,7 +400,7 @@ function App() {
                 {modeIcons.map((item) => (
                   <IconButton
                     key={item.id}
-                    glyph={item.glyph}
+                    icon={item.icon}
                     label={t(item.labelId, item.fallback)}
                     active={mode === item.id}
                     onClick={() => setMode(item.id)}
@@ -394,7 +425,17 @@ function App() {
                       >
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black/30 text-xl">
-                            <span aria-hidden="true">{glyphForKind[item.kind]}</span>
+                            {(() => {
+                              const KindIcon = iconForKind[item.kind]
+                              return (
+                                <KindIcon
+                                  size={18}
+                                  strokeWidth={1.6}
+                                  aria-hidden="true"
+                                  className="text-white/80"
+                                />
+                              )
+                            })()}
                           </div>
                           <div>
                             <p className="text-sm font-semibold">{item.name}</p>
@@ -429,11 +470,16 @@ function App() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-4 text-2xl">
-                    <span aria-hidden="true">{playing ? '⚡' : '💤'}</span>
+                    <Gauge
+                      size={24}
+                      strokeWidth={1.6}
+                      aria-hidden="true"
+                      className={cn(playing ? 'text-plasma' : 'text-white/50')}
+                    />
                     <span className="sr-only">{t('status.cpu', 'GPU boost')}</span>
                   </div>
                   <div className="flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-4 text-2xl">
-                    <span aria-hidden="true">🌊</span>
+                    <Activity size={24} strokeWidth={1.6} aria-hidden="true" />
                     <span className="sr-only">{t('status.wave', 'Visualizer')}</span>
                   </div>
                 </div>
@@ -441,24 +487,20 @@ function App() {
             </div>
           </Panel>
 
-          <Panel
-            glyph="⚙️"
-            label={t('settings.header', 'Settings')}
-            className="space-y-4"
-          >
+          <Panel icon={Settings2} label={t('settings.header', 'Settings')} className="space-y-4">
             <div className="flex flex-wrap gap-2">
               <IconButton
-                glyph="🌙"
+                icon={Moon}
                 label={t('settings.theme', 'Theme switch')}
                 size="sm"
               />
               <IconButton
-                glyph="🎚️"
+                icon={SlidersHorizontal}
                 label={t('action.eq', 'Equalizer presets')}
                 size="sm"
               />
               <IconButton
-                glyph="🧰"
+                icon={UserRound}
                 label={t('settings.profile', 'Profile panel')}
                 size="sm"
               />

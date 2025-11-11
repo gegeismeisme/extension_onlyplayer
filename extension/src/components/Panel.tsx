@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/utils/cn'
 
 type PanelProps = {
-  glyph: string
+  glyph?: string
+  icon?: LucideIcon
   label: string
   children: ReactNode
   className?: string
 }
 
-export function Panel({ glyph, label, children, className }: PanelProps) {
+export function Panel({ glyph, icon: Icon, label, children, className }: PanelProps) {
   return (
     <section
       className={cn(
@@ -18,7 +20,11 @@ export function Panel({ glyph, label, children, className }: PanelProps) {
     >
       <header className="mb-3 flex items-center gap-3 text-white/60">
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-black/20 text-2xl">
-          <span aria-hidden="true">{glyph}</span>
+          {Icon ? (
+            <Icon size={24} strokeWidth={1.75} aria-hidden="true" />
+          ) : (
+            <span aria-hidden="true">{glyph}</span>
+          )}
         </div>
         <span className="sr-only">{label}</span>
       </header>
