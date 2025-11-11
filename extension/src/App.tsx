@@ -9,6 +9,7 @@ import {
 import { IconButton } from '@/components/IconButton'
 import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 import { Panel } from '@/components/Panel'
+import { ActionTile } from '@/components/ActionTile'
 import { cn } from '@/utils/cn'
 import { usePlayerStore, type PlayerMode } from '@/state/usePlayerStore'
 import { useLocale } from '@/i18n/provider'
@@ -128,6 +129,7 @@ function App() {
     library,
     nowPlayingId,
     loadFromDirectory,
+    loadFromSavedFolder,
     focusItem,
     togglePlay,
     playing,
@@ -143,6 +145,15 @@ function App() {
     queueMode,
     cycleQueueMode,
     hydratePreferences,
+    savedFolders,
+    refreshSavedFolders,
+    currentTime,
+    duration,
+    setPlaybackMetrics,
+    setVolume,
+    volume,
+    muted,
+    toggleMute,
   } = usePlayerStore()
 
   const queue = library
@@ -153,8 +164,6 @@ function App() {
   const unitLabel = t('player.unit.mb', 'MB')
 
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [progress, setProgress] = useState(0)
-  const [duration, setDuration] = useState(0)
   const [hasVideoFrame, setHasVideoFrame] = useState(false)
   const [pipActive, setPipActive] = useState(false)
   const [prefsLoaded, setPrefsLoaded] = useState(false)
@@ -166,13 +175,12 @@ function App() {
   const speedLabel = `${playbackRate.toFixed(2).replace(/\.00$/, '').replace(/\.50$/, '.5')}x`
 
   useEffect(() => {
-    setProgress(0)
-    setDuration(0)
+    setPlaybackMetrics({ currentTime: 0, duration: 0 })
     if (!nowPlaying) {
       setHasVideoFrame(false)
       setPipActive(false)
     }
-  }, [nowPlaying])
+  }, [nowPlaying, setPlaybackMetrics])
 
   useEffect(() => {
     let mounted = true
@@ -185,6 +193,10 @@ function App() {
       mounted = false
     }
   }, [hydratePreferences])
+
+  useEffect(() => {
+    void refreshSavedFolders()
+  }, [refreshSavedFolders])
 
   useEffect(() => {
     if (!prefsLoaded) return
@@ -231,10 +243,10 @@ function App() {
     if (!player) return
 
     const update = () => {
-      if (player.duration) {
-        setDuration(player.duration)
-      }
-      setProgress(player.currentTime)
+      setPlaybackMetrics({
+        currentTime: player.currentTime,
+        duration: player.duration || 0,
+      })
     }
 
     const handleMetadata = () => {
@@ -273,9 +285,7 @@ function App() {
       player.removeEventListener('ended', handleEnded)
       document.removeEventListener('leavepictureinpicture', handleLeavePiP)
     }
-  }, [playNext, queueMode, setPlaying])
-
-  const progressPercent = duration ? Math.min((progress / duration) * 100, 100) : 0
+  }, [playNext, queueMode, setPlaybackMetrics, setPlaying])
 
   const handleScan = useCallback(async () => {
     if (!('showDirectoryPicker' in window)) {
@@ -346,6 +356,17 @@ function App() {
   const handleSpeedCycle = useCallback(() => {
     setPlaybackRate(nextSpeed)
   }, [nextSpeed, setPlaybackRate])
+
+  const handleSeek = useCallback(
+    (value: number) => {
+      const player = videoRef.current
+      if (!player || !duration) return
+      const target = Math.min(duration, Math.max(0, value))
+      player.currentTime = target
+      setPlaybackMetrics({ currentTime: target, duration })
+    },
+    [duration, setPlaybackMetrics],
+  )
 
 
   return (
@@ -458,6 +479,28 @@ function App() {
                 <span>{t('library.scanning', 'Scanning media...')}</span>
               </div>
             )}
+
+            {savedFolders.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.4em] text-white/40">
+                  {t('library.recentsTitle', 'Recent folders')}
+                </p>
+                <div className="flex flex-col gap-2">
+                  {savedFolders.map((folder) => (
+                    <button
+                      key={folder.id}
+                      type="button"
+                      className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-left text-sm transition hover:border-plasma/50"
+                      onClick={() => loadFromSavedFolder(folder.id)}
+                      disabled={loading}
+                    >
+                      <span>{folder.name}</span>
+                      <span className="text-xs text-white/40">↺</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </Panel>
 
           <Panel
@@ -465,9 +508,9 @@ function App() {
             label={t('player.controls', 'Transport')}
             className="space-y-6"
           >
-            <div className="rounded-3xl border border-white/10 bg-black/40 p-4 lg:p-6">
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
-                <div className="aspect-video w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-black to-slate-900">
+                <div className="rounded-3xl border border-white/10 bg-black/40 p-4 lg:p-6">
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+                    <div className="aspect-video w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-black to-slate-900">
                   <video
                     ref={videoRef}
                     className="h-full w-full object-cover"
@@ -494,17 +537,19 @@ function App() {
                       </p>
                     </div>
                   </div>
-                  <div className="space-y-1 text-xs text-white/60">
+                  <div className="space-y-2 text-xs text-white/60">
                     <div className="flex justify-between">
-                      <span>{formatSeconds(progress)}</span>
+                      <span>{formatSeconds(currentTime)}</span>
                       <span>{formatSeconds(duration)}</span>
                     </div>
-                    <div className="h-2 w-full rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-plasma to-amber transition-all"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={duration || 1}
+                      value={currentTime}
+                      onChange={(event) => handleSeek(Number(event.target.value))}
+                      className="w-full accent-plasma"
+                    />
                     {nowPlaying && (
                       <div className="flex justify-between">
                         <span>{nowPlaying.ext.toUpperCase()}</span>
@@ -567,6 +612,26 @@ function App() {
             <div className="grid gap-3 lg:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
                 <p className="sr-only">{t('player.queue', 'Up next')}</p>
+                <div className="mb-3 flex items-center gap-3">
+                  <button
+                    type="button"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xl"
+                    onClick={toggleMute}
+                    aria-label={muted ? 'Unmute' : 'Mute'}
+                  >
+                    {muted ? '🔇' : '🔊'}
+                  </button>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={muted ? 0 : volume}
+                    onChange={(event) => setVolume(Number(event.target.value))}
+                    className="flex-1 accent-plasma"
+                  />
+                  <span className="text-xs text-white/60">{Math.round(volume * 100)}%</span>
+                </div>
                 <ul className="flex max-h-72 flex-col gap-2 overflow-auto pr-2" role="list">
                   {queue.map((item) => (
                     <li key={item.id}>

@@ -1,7 +1,12 @@
 import { scanDirectory } from '@/services/folderScanner'
+import { loadFolders, saveFolder } from '@/services/directoryStore'
 import type { MediaItem } from '@/types/media'
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
+
+type PermissionCapableHandle = FileSystemDirectoryHandle & {
+  requestPermission?: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>
+}
 
 export type PlayerView = 'library' | 'player' | 'settings'
 export type PlayerMode = 'hybrid' | 'audio' | 'video'
@@ -16,6 +21,11 @@ type PlayerState = {
   error?: string
   playbackRate: number
   queueMode: 'single' | 'loop' | 'shuffle'
+  savedFolders: Array<{ id: string; name: string }>
+  currentTime: number
+  duration: number
+  volume: number
+  muted: boolean
   setView: (view: PlayerView) => void
   setMode: (mode: PlayerMode) => void
   focusItem: (id: string) => void
@@ -26,16 +36,19 @@ type PlayerState = {
   hydratePreferences: (
     prefs: Partial<Pick<PlayerState, 'playbackRate' | 'queueMode'>>,
   ) => void
+  setPlaybackMetrics: (payload: { currentTime: number; duration: number }) => void
+  setVolume: (volume: number) => void
+  toggleMute: () => void
+  refreshSavedFolders: () => Promise<void>
   loadFromDirectory: (handle: FileSystemDirectoryHandle) => Promise<void>
+  loadFromSavedFolder: (id: string) => Promise<boolean>
   clearLibrary: () => void
   playNext: () => void
   playPrevious: () => void
 }
 
 const revokeUrls = (items: MediaItem[]) => {
-  items.forEach((item) => {
-    URL.revokeObjectURL(item.url)
-  })
+  items.forEach((item) => URL.revokeObjectURL(item.url))
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -49,6 +62,11 @@ export const usePlayerStore = create<PlayerState>()(
     error: undefined,
     playbackRate: 1,
     queueMode: 'loop',
+    savedFolders: [],
+    currentTime: 0,
+    duration: 0,
+    volume: 1,
+    muted: false,
     setView: (view) =>
       set((state) => {
         state.view = view
@@ -96,6 +114,28 @@ export const usePlayerStore = create<PlayerState>()(
           state.queueMode = 'loop'
         }
       }),
+    setPlaybackMetrics: ({ currentTime, duration }) =>
+      set((state) => {
+        state.currentTime = currentTime
+        state.duration = duration
+      }),
+    setVolume: (volume) =>
+      set((state) => {
+        state.volume = Math.min(1, Math.max(0, volume))
+        if (state.volume > 0) {
+          state.muted = false
+        }
+      }),
+    toggleMute: () =>
+      set((state) => {
+        state.muted = !state.muted
+      }),
+    refreshSavedFolders: async () => {
+      const folders = await loadFolders()
+      set((state) => {
+        state.savedFolders = folders.map(({ id, name }) => ({ id, name }))
+      })
+    },
     loadFromDirectory: async (handle) => {
       set((state) => {
         state.loading = true
@@ -103,6 +143,8 @@ export const usePlayerStore = create<PlayerState>()(
       })
       try {
         const files = await scanDirectory(handle)
+        await saveFolder(handle)
+        await get().refreshSavedFolders()
         set((state) => {
           revokeUrls(state.library)
           state.library = files
@@ -116,6 +158,23 @@ export const usePlayerStore = create<PlayerState>()(
           state.error =
             error instanceof Error ? error.message : 'Unable to read directory'
         })
+      }
+    },
+    loadFromSavedFolder: async (id) => {
+      try {
+        const folders = await loadFolders()
+        const match = folders.find((folder) => folder.id === id)
+        if (!match) return false
+        const handleWithPerm = match.handle as PermissionCapableHandle
+        if (handleWithPerm.requestPermission) {
+          const permission = await handleWithPerm.requestPermission({ mode: 'read' })
+          if (permission === 'denied') return false
+        }
+        await get().loadFromDirectory(match.handle)
+        return true
+      } catch (error) {
+        console.warn('Failed to load saved folder', error)
+        return false
       }
     },
     clearLibrary: () => {

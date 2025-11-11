@@ -45,6 +45,7 @@ export const catalogs: Record<LocaleKey, MessageCatalog> = {
     'library.scanning': 'Scanning media...',
     'library.error': 'Scan failed',
     'errors.noFSA': 'Browser cannot open folders',
+    'library.recentsTitle': 'Recent folders',
   },
   'zh-CN': {
     'nav.library': '媒体库',
@@ -88,6 +89,7 @@ export const catalogs: Record<LocaleKey, MessageCatalog> = {
     'library.scanning': '正在扫描媒体…',
     'library.error': '扫描失败',
     'errors.noFSA': '浏览器无法打开文件夹',
+    'library.recentsTitle': '最近目录',
   },
 }
 

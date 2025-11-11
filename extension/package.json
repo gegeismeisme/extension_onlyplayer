@@ -18,6 +18,7 @@
     "@lingui/core": "^5.5.2",
     "@lingui/macro": "^5.5.2",
     "@lingui/react": "^5.5.2",
+    "idb": "^8.0.3",
     "immer": "^10.2.0",
     "lucide-react": "^0.553.0",
     "react": "^19.2.0",
