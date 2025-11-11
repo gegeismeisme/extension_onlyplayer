@@ -1,5 +1,3 @@
-import type { I18n } from '@lingui/core'
-import { useLingui } from '@lingui/react'
 import {
   useState,
   useMemo,
@@ -13,6 +11,7 @@ import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 import { Panel } from '@/components/Panel'
 import { cn } from '@/utils/cn'
 import { usePlayerStore, type PlayerMode } from '@/state/usePlayerStore'
+import { useLocale } from '@/i18n/provider'
 
 const libraryNav = [
   { id: 'library', glyph: '🗂️', labelId: 'nav.library', fallback: 'Library' },
@@ -53,8 +52,6 @@ const glyphForKind: Record<'audio' | 'video', string> = {
   video: '🎞️',
 }
 
-const text = (i18n: I18n, id: string, message: string) => i18n._({ id, message })
-
 const formatSeconds = (value: number) => {
   if (!Number.isFinite(value) || value <= 0) return '--:--'
   const minutes = Math.floor(value / 60)
@@ -82,7 +79,7 @@ const EmptyState = ({ children }: { children: ReactNode }) => (
 )
 
 function App() {
-  const { i18n } = useLingui()
+  const { t } = useLocale()
   const {
     library,
     nowPlayingId,
@@ -104,7 +101,7 @@ function App() {
     () => queue.find((item) => item.id === nowPlayingId),
     [queue, nowPlayingId],
   )
-  const unitLabel = text(i18n, 'player.unit.mb', 'MB')
+  const unitLabel = t('player.unit.mb', 'MB')
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const [progress, setProgress] = useState(0)
@@ -175,7 +172,7 @@ function App() {
 
   const handleScan = useCallback(async () => {
     if (!('showDirectoryPicker' in window)) {
-      window.alert(text(i18n, 'errors.noFSA', 'Browser cannot open folders'))
+      window.alert(t('errors.noFSA', 'Browser cannot open folders'))
       return
     }
     try {
@@ -189,7 +186,7 @@ function App() {
       if ((scanError as DOMException).name === 'AbortError') return
       console.error(scanError)
     }
-  }, [i18n, loadFromDirectory])
+  }, [loadFromDirectory, t])
 
   const handleStop = () => {
     setPlaying(false)
@@ -227,7 +224,7 @@ function App() {
         <section className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_260px]">
           <Panel
             glyph="🗂️"
-            label={text(i18n, 'nav.library', 'Library')}
+            label={t('nav.library', 'Library')}
             className="space-y-5"
           >
             <div className="flex flex-wrap gap-2">
@@ -235,7 +232,7 @@ function App() {
                 <IconButton
                   key={item.id}
                   glyph={item.glyph}
-                  label={text(i18n, item.labelId, item.fallback)}
+                  label={t(item.labelId, item.fallback)}
                   size="md"
                   onClick={() => {
                     if (item.id === 'audio' || item.id === 'video') {
@@ -251,7 +248,7 @@ function App() {
                 <IconButton
                   key={action.labelId}
                   glyph={action.glyph}
-                  label={text(i18n, action.labelId, action.fallback)}
+                  label={t(action.labelId, action.fallback)}
                   size="sm"
                   onClick={action.onClick}
                   disabled={loading && action.labelId === 'action.scan'}
@@ -263,27 +260,27 @@ function App() {
             {error && (
               <div className="flex items-center gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-100">
                 <span aria-hidden="true">⚠️</span>
-                <span>{text(i18n, 'library.error', 'Scan failed')}</span>
+                <span>{t('library.error', 'Scan failed')}</span>
               </div>
             )}
 
             {queue.length === 0 && !loading && (
               <EmptyState>
-                <span>{text(i18n, 'library.empty', 'Pick a folder to begin')}</span>
+                <span>{t('library.empty', 'Pick a folder to begin')}</span>
               </EmptyState>
             )}
 
             {loading && (
               <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80">
                 <span aria-hidden="true">⏳</span>
-                <span>{text(i18n, 'library.scanning', 'Scanning media...')}</span>
+                <span>{t('library.scanning', 'Scanning media...')}</span>
               </div>
             )}
           </Panel>
 
           <Panel
             glyph="🎚️"
-            label={text(i18n, 'player.controls', 'Transport')}
+            label={t('player.controls', 'Transport')}
             className="space-y-6"
           >
             <div className="rounded-3xl border border-white/10 bg-black/40 p-4 lg:p-6">
@@ -305,10 +302,10 @@ function App() {
                     </div>
                     <div>
                       <p className="text-xs uppercase tracking-[0.4em] text-white/50">
-                        {text(i18n, 'player.nowPlaying', 'Now playing')}
+                        {t('player.nowPlaying', 'Now playing')}
                       </p>
                       <p className="font-display text-xl">
-                        {nowPlaying?.name ?? text(i18n, 'player.none', 'Idle')}
+                        {nowPlaying?.name ?? t('player.none', 'Idle')}
                       </p>
                     </div>
                   </div>
@@ -338,13 +335,13 @@ function App() {
               <div className="flex flex-wrap gap-2">
                 <IconButton
                   glyph="⏮️"
-                  label={text(i18n, 'player.prev', 'Previous item')}
+                  label={t('player.prev', 'Previous item')}
                   onClick={playPrevious}
                   disabled={!nowPlaying}
                 />
                 <IconButton
                   glyph="⏯️"
-                  label={text(i18n, 'player.toggle', 'Play or pause')}
+                  label={t('player.toggle', 'Play or pause')}
                   active={playing}
                   onClick={() => {
                     if (!nowPlaying && queue[0]) {
@@ -357,13 +354,13 @@ function App() {
                 />
                 <IconButton
                   glyph="⏭️"
-                  label={text(i18n, 'player.next', 'Next item')}
+                  label={t('player.next', 'Next item')}
                   onClick={playNext}
                   disabled={!nowPlaying}
                 />
                 <IconButton
                   glyph="⏹️"
-                  label={text(i18n, 'player.stop', 'Stop playback')}
+                  label={t('player.stop', 'Stop playback')}
                   onClick={handleStop}
                   disabled={!nowPlaying}
                 />
@@ -373,7 +370,7 @@ function App() {
                   <IconButton
                     key={item.id}
                     glyph={item.glyph}
-                    label={text(i18n, item.labelId, item.fallback)}
+                    label={t(item.labelId, item.fallback)}
                     active={mode === item.id}
                     onClick={() => setMode(item.id)}
                     size="sm"
@@ -384,7 +381,7 @@ function App() {
 
             <div className="grid gap-3 lg:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                <p className="sr-only">{text(i18n, 'player.queue', 'Up next')}</p>
+                <p className="sr-only">{t('player.queue', 'Up next')}</p>
                 <ul className="flex max-h-72 flex-col gap-2 overflow-auto pr-2" role="list">
                   {queue.map((item) => (
                     <li key={item.id}>
@@ -415,7 +412,7 @@ function App() {
                 </ul>
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/30 p-4 space-y-3">
-                <p className="sr-only">{text(i18n, 'player.speed', 'Speed deck')}</p>
+                <p className="sr-only">{t('player.speed', 'Speed deck')}</p>
                 <div className="grid grid-cols-4 gap-2">
                   {speedDeck.map((chip) => (
                     <div
@@ -433,13 +430,11 @@ function App() {
                 <div className="flex items-center gap-2">
                   <div className="flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-4 text-2xl">
                     <span aria-hidden="true">{playing ? '⚡' : '💤'}</span>
-                    <span className="sr-only">
-                      {text(i18n, 'status.cpu', 'GPU boost')}
-                    </span>
+                    <span className="sr-only">{t('status.cpu', 'GPU boost')}</span>
                   </div>
                   <div className="flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-4 text-2xl">
                     <span aria-hidden="true">🌊</span>
-                    <span className="sr-only">{text(i18n, 'status.wave', 'Visualizer')}</span>
+                    <span className="sr-only">{t('status.wave', 'Visualizer')}</span>
                   </div>
                 </div>
               </div>
@@ -448,29 +443,29 @@ function App() {
 
           <Panel
             glyph="⚙️"
-            label={text(i18n, 'settings.header', 'Settings')}
+            label={t('settings.header', 'Settings')}
             className="space-y-4"
           >
             <div className="flex flex-wrap gap-2">
               <IconButton
                 glyph="🌙"
-                label={text(i18n, 'settings.theme', 'Theme switch')}
+                label={t('settings.theme', 'Theme switch')}
                 size="sm"
               />
               <IconButton
                 glyph="🎚️"
-                label={text(i18n, 'action.eq', 'Equalizer presets')}
+                label={t('action.eq', 'Equalizer presets')}
                 size="sm"
               />
               <IconButton
                 glyph="🧰"
-                label={text(i18n, 'settings.profile', 'Profile panel')}
+                label={t('settings.profile', 'Profile panel')}
                 size="sm"
               />
             </div>
             <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/70">
               <p className="mb-2 text-xs uppercase tracking-[0.4em]">
-                {text(i18n, 'settings.locale', 'Language selector')}
+                {t('settings.locale', 'Language selector')}
               </p>
               <LocaleSwitcher />
             </div>
