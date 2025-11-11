@@ -359,10 +359,6 @@ function App() {
     }, 'image/png')
   }, [hasVideoFrame])
 
-  const handleSpeedCycle = useCallback(() => {
-    setPlaybackRate(nextSpeed)
-  }, [nextSpeed, setPlaybackRate])
-
   const openFullTab = useCallback(() => {
     if (chrome.runtime?.openOptionsPage) {
       chrome.runtime.openOptionsPage()
@@ -370,6 +366,18 @@ function App() {
       window.open(chrome.runtime.getURL('index.html'), '_blank')
     }
   }, [])
+
+  useEffect(() => {
+    if (window.location.search.includes('standalone=1')) return
+    if (window.innerWidth < 700) {
+      openFullTab()
+      window.close?.()
+    }
+  }, [openFullTab])
+
+  const handleSpeedCycle = useCallback(() => {
+    setPlaybackRate(nextSpeed)
+  }, [nextSpeed, setPlaybackRate])
 
   const handleSeek = useCallback(
     (value: number) => {
