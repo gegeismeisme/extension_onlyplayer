@@ -1,11 +1,11 @@
-import type { RefObject } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import type { MediaItem } from '@/types/media'
 import { IconButton } from '@/components/IconButton'
 import { cn } from '@/utils/cn'
 import { StepBack, StepForward, Play, Pause, Square } from 'lucide-react'
 
 type PlayerSurfaceProps = {
-  videoRef: RefObject<HTMLVideoElement>
+  videoRef: RefObject<HTMLVideoElement | null>
   nowPlaying?: MediaItem
   queue: MediaItem[]
   playing: boolean
@@ -24,7 +24,7 @@ type PlayerSurfaceProps = {
   unitLabel: string
 }
 
-const iconForKind: Record<'audio' | 'video', JSX.Element> = {
+const iconForKind: Record<'audio' | 'video', ReactNode> = {
   audio: <span aria-hidden="true">🎧</span>,
   video: <span aria-hidden="true">🎞️</span>,
 }
