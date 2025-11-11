@@ -15,17 +15,17 @@ type PlayerState = {
   loading: boolean
   error?: string
   playbackRate: number
-  shuffle: boolean
-  loopQueue: boolean
+  queueMode: 'single' | 'loop' | 'shuffle'
   setView: (view: PlayerView) => void
   setMode: (mode: PlayerMode) => void
   focusItem: (id: string) => void
   togglePlay: () => void
   setPlaying: (val: boolean) => void
   setPlaybackRate: (rate: number) => void
-  toggleShuffle: () => void
-  toggleLoop: () => void
-  hydratePreferences: (prefs: Partial<Pick<PlayerState, 'playbackRate' | 'shuffle' | 'loopQueue'>>) => void
+  cycleQueueMode: () => void
+  hydratePreferences: (
+    prefs: Partial<Pick<PlayerState, 'playbackRate' | 'queueMode'>>,
+  ) => void
   loadFromDirectory: (handle: FileSystemDirectoryHandle) => Promise<void>
   clearLibrary: () => void
   playNext: () => void
@@ -48,8 +48,7 @@ export const usePlayerStore = create<PlayerState>()(
     loading: false,
     error: undefined,
     playbackRate: 1,
-    shuffle: false,
-    loopQueue: false,
+    queueMode: 'loop',
     setView: (view) =>
       set((state) => {
         state.view = view
@@ -79,24 +78,22 @@ export const usePlayerStore = create<PlayerState>()(
       set((state) => {
         state.playbackRate = rate
       }),
-    toggleShuffle: () =>
+    cycleQueueMode: () =>
       set((state) => {
-        state.shuffle = !state.shuffle
-      }),
-    toggleLoop: () =>
-      set((state) => {
-        state.loopQueue = !state.loopQueue
+        const order: PlayerState['queueMode'][] = ['loop', 'shuffle', 'single']
+        const idx = order.indexOf(state.queueMode)
+        state.queueMode = order[(idx + 1) % order.length]
       }),
     hydratePreferences: (prefs) =>
       set((state) => {
         if (typeof prefs.playbackRate === 'number' && prefs.playbackRate > 0) {
           state.playbackRate = prefs.playbackRate
         }
-        if (typeof prefs.shuffle === 'boolean') {
-          state.shuffle = prefs.shuffle
-        }
-        if (typeof prefs.loopQueue === 'boolean') {
-          state.loopQueue = prefs.loopQueue
+        const prefMode = (prefs as { queueMode?: string }).queueMode
+        if (prefMode === 'loop' || prefMode === 'shuffle' || prefMode === 'single') {
+          state.queueMode = prefMode
+        } else if (prefMode === 'sequence') {
+          state.queueMode = 'loop'
         }
       }),
     loadFromDirectory: async (handle) => {
@@ -135,7 +132,7 @@ export const usePlayerStore = create<PlayerState>()(
         if (!state.nowPlayingId) return
         if (state.library.length === 0) return
 
-        if (state.shuffle) {
+        if (state.queueMode === 'shuffle') {
           const available = state.library.filter((item) => item.id !== state.nowPlayingId)
           if (available.length === 0) return
           const next = available[Math.floor(Math.random() * available.length)]
@@ -144,14 +141,18 @@ export const usePlayerStore = create<PlayerState>()(
           return
         }
 
+        if (state.queueMode === 'single') {
+          state.playing = true
+          return
+        }
+
         const idx = state.library.findIndex((item) => item.id === state.nowPlayingId)
         if (idx >= 0) {
-          const nextIndex =
-            idx < state.library.length - 1 ? idx + 1 : state.loopQueue ? 0 : idx
+          const nextIndex = idx < state.library.length - 1 ? idx + 1 : 0
           if (nextIndex !== idx) {
             state.nowPlayingId = state.library[nextIndex].id
             state.playing = true
-          } else if (state.loopQueue) {
+          } else {
             state.playing = false
           }
         }

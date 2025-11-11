@@ -12,6 +12,7 @@ import { Panel } from '@/components/Panel'
 import { cn } from '@/utils/cn'
 import { usePlayerStore, type PlayerMode } from '@/state/usePlayerStore'
 import { useLocale } from '@/i18n/provider'
+import { loadPreferences, savePreferences } from '@/utils/storage'
 import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
@@ -27,6 +28,7 @@ import {
   PictureInPicture,
   Play,
   Repeat,
+  Repeat1,
   Repeat2,
   ScanLine,
   Settings2,
@@ -57,8 +59,6 @@ const actionGrid: Array<{
   onClick?: () => void
 }> = [
   { id: 'scan', icon: ScanLine, labelId: 'action.scan', fallback: 'Scan folders' },
-  { id: 'shuffle', icon: Shuffle, labelId: 'action.shuffle', fallback: 'Shuffle play' },
-  { id: 'loop', icon: Repeat, labelId: 'action.loop', fallback: 'Loop queue' },
   { id: 'pip', icon: PictureInPicture, labelId: 'action.pip', fallback: 'Picture in picture' },
   { id: 'snapshot', icon: Camera, labelId: 'action.snapshot', fallback: 'Snapshot' },
   { id: 'repeat-ab', icon: Repeat2, labelId: 'action.repeat', fallback: 'A-B repeat' },
@@ -84,6 +84,17 @@ const iconForKind: Record<'audio' | 'video', LucideIcon> = {
   audio: Music3,
   video: Video,
 }
+
+const queueModeMeta: Record<
+  'loop' | 'shuffle' | 'single',
+  { icon: LucideIcon; labelId: string; fallback: string }
+> = {
+  loop: { icon: Repeat, labelId: 'queue.loop', fallback: 'List loop' },
+  shuffle: { icon: Shuffle, labelId: 'queue.shuffle', fallback: 'Shuffle play' },
+  single: { icon: Repeat1, labelId: 'queue.single', fallback: 'Single loop' },
+}
+
+const speedSteps = [0.5, 1, 1.5, 2]
 
 const formatSeconds = (value: number) => {
   if (!Number.isFinite(value) || value <= 0) return '--:--'
@@ -129,10 +140,9 @@ function App() {
     setPlaying,
     playbackRate,
     setPlaybackRate,
-    shuffle,
-    toggleShuffle,
-    loopQueue,
-    toggleLoop,
+    queueMode,
+    cycleQueueMode,
+    hydratePreferences,
   } = usePlayerStore()
 
   const queue = library
@@ -145,11 +155,41 @@ function App() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [hasVideoFrame, setHasVideoFrame] = useState(false)
+  const [pipActive, setPipActive] = useState(false)
+  const [prefsLoaded, setPrefsLoaded] = useState(false)
+
+  const queueMeta = queueModeMeta[queueMode]
+  const speedIndex = speedSteps.findIndex((step) => Math.abs(step - playbackRate) < 0.01)
+  const safeSpeedIndex = speedIndex >= 0 ? speedIndex : 1
+  const nextSpeed = speedSteps[(safeSpeedIndex + 1) % speedSteps.length]
+  const speedLabel = `${playbackRate.toFixed(2).replace(/\.00$/, '').replace(/\.50$/, '.5')}x`
 
   useEffect(() => {
     setProgress(0)
     setDuration(0)
-  }, [nowPlaying?.id])
+    if (!nowPlaying) {
+      setHasVideoFrame(false)
+      setPipActive(false)
+    }
+  }, [nowPlaying])
+
+  useEffect(() => {
+    let mounted = true
+    loadPreferences().then((prefs) => {
+      if (!mounted) return
+      hydratePreferences(prefs)
+      setPrefsLoaded(true)
+    })
+    return () => {
+      mounted = false
+    }
+  }, [hydratePreferences])
+
+  useEffect(() => {
+    if (!prefsLoaded) return
+    void savePreferences({ playbackRate, queueMode })
+  }, [prefsLoaded, playbackRate, queueMode])
 
   useEffect(() => {
     const player = videoRef.current
@@ -197,21 +237,43 @@ function App() {
       setProgress(player.currentTime)
     }
 
+    const handleMetadata = () => {
+      update()
+      setHasVideoFrame((player.videoWidth ?? 0) > 0 && (player.videoHeight ?? 0) > 0)
+    }
+
     const handleEnded = () => {
+      if (queueMode === 'single') {
+        player.currentTime = 0
+        player.play().catch(() => setPlaying(false))
+        return
+      }
       setPlaying(false)
       playNext()
     }
 
+    const handleEmptied = () => {
+      setHasVideoFrame(false)
+    }
+
+    const handleLeavePiP = () => {
+      setPipActive(false)
+    }
+
     player.addEventListener('timeupdate', update)
-    player.addEventListener('loadedmetadata', update)
+    player.addEventListener('loadedmetadata', handleMetadata)
+    player.addEventListener('emptied', handleEmptied)
     player.addEventListener('ended', handleEnded)
+    document.addEventListener('leavepictureinpicture', handleLeavePiP)
 
     return () => {
       player.removeEventListener('timeupdate', update)
-      player.removeEventListener('loadedmetadata', update)
+      player.removeEventListener('loadedmetadata', handleMetadata)
+      player.removeEventListener('emptied', handleEmptied)
       player.removeEventListener('ended', handleEnded)
+      document.removeEventListener('leavepictureinpicture', handleLeavePiP)
     }
-  }, [playNext, setPlaying])
+  }, [playNext, queueMode, setPlaying])
 
   const progressPercent = duration ? Math.min((progress / duration) * 100, 100) : 0
 
@@ -241,6 +303,49 @@ function App() {
       player.currentTime = 0
     }
   }
+
+  const togglePiP = useCallback(async () => {
+    const player = videoRef.current
+    if (!player || !hasVideoFrame) return
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture()
+        setPipActive(false)
+      } else {
+        await player.requestPictureInPicture()
+        setPipActive(true)
+      }
+    } catch (error) {
+      console.warn('PiP toggle failed', error)
+    }
+  }, [hasVideoFrame])
+
+  const handleSnapshot = useCallback(async () => {
+    const player = videoRef.current
+    if (!player || !hasVideoFrame) return
+    const width = player.videoWidth || 1280
+    const height = player.videoHeight || 720
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.drawImage(player, 0, 0, width, height)
+    canvas.toBlob((blob) => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+      anchor.href = url
+      anchor.download = `onlyplayer-frame-${stamp}.png`
+      anchor.click()
+      setTimeout(() => URL.revokeObjectURL(url), 500)
+    }, 'image/png')
+  }, [hasVideoFrame])
+
+  const handleSpeedCycle = useCallback(() => {
+    setPlaybackRate(nextSpeed)
+  }, [nextSpeed, setPlaybackRate])
 
 
   return (
@@ -278,6 +383,19 @@ function App() {
             </div>
 
             <div className="grid grid-cols-3 gap-2" role="list">
+              <IconButton
+                icon={queueMeta.icon}
+                label={t(queueMeta.labelId, queueMeta.fallback)}
+                size="sm"
+                onClick={cycleQueueMode}
+                active
+              />
+              <IconButton
+                icon={Gauge}
+                label={t('player.speed.cycle', 'Speed') + ` ${speedLabel}`}
+                size="sm"
+                onClick={handleSpeedCycle}
+              />
               {actionGrid.map((action) => {
                 let onClick: (() => void) | undefined = action.onClick
                 let disabled = false
@@ -287,12 +405,20 @@ function App() {
                   onClick = handleScan
                   disabled = loading
                   activeState = loading
-                } else if (action.id === 'shuffle') {
-                  onClick = toggleShuffle
-                  activeState = shuffle
-                } else if (action.id === 'loop') {
-                  onClick = toggleLoop
-                  activeState = loopQueue
+                } else if (action.id === 'pip') {
+                  onClick = togglePiP
+                  disabled = !hasVideoFrame || !nowPlaying
+                  activeState = pipActive
+                } else if (action.id === 'snapshot') {
+                  onClick = handleSnapshot
+                  disabled = !hasVideoFrame || !nowPlaying
+                } else if (
+                  action.id === 'repeat-ab' ||
+                  action.id === 'eq' ||
+                  action.id === 'keymaps' ||
+                  action.id === 'profile'
+                ) {
+                  disabled = true
                 }
 
                 if (!onClick) {
