@@ -45,6 +45,7 @@ function App() {
     volume,
     muted,
     toggleMute,
+    currentFolderName,
   } = usePlayerStore()
 
   const queueMeta = queueModeMeta[queueMode]
@@ -316,8 +317,6 @@ function App() {
             loading ? t('library.scanning', 'Scanning media...') : t('action.scan', 'Open folder')
           }
           openFolderBusy={loading}
-          onOpenTab={openFullTab}
-          openTabLabel={t('action.openTab', 'Open in tab')}
           localeSwitcher={<LocaleSwitcher />}
           controls={topControls}
         />
@@ -333,6 +332,7 @@ function App() {
             folders={savedFolders}
             onFolderSelect={(id) => void loadFromSavedFolder(id)}
             emptyLabel={t('library.empty', 'Pick a folder to begin')}
+            currentFolderName={currentFolderName}
             playlist={queue.map((item) => ({
               id: item.id,
               name: item.name,

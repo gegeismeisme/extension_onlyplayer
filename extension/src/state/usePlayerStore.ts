@@ -22,6 +22,7 @@ type PlayerState = {
   playbackRate: number
   queueMode: 'single' | 'loop' | 'shuffle'
   savedFolders: Array<{ id: string; name: string }>
+  currentFolderName?: string
   currentTime: number
   duration: number
   volume: number
@@ -63,6 +64,7 @@ export const usePlayerStore = create<PlayerState>()(
     playbackRate: 1,
     queueMode: 'loop',
     savedFolders: [],
+    currentFolderName: undefined,
     currentTime: 0,
     duration: 0,
     volume: 1,
@@ -153,6 +155,7 @@ export const usePlayerStore = create<PlayerState>()(
           state.nowPlayingId = files[0]?.id
           state.playing = false
           state.loading = false
+          state.currentFolderName = handle.name
         })
       } catch (error) {
         console.error('[OnlyPlayer] scan failed', error)

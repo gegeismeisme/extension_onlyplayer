@@ -18,8 +18,6 @@ type TopBarProps = {
   onOpenFolder: () => void
   openFolderLabel: string
   openFolderBusy: boolean
-  onOpenTab: () => void
-  openTabLabel: string
   localeSwitcher: ReactNode
   controls: TopBarControl[]
 }
@@ -30,8 +28,6 @@ export function TopBar({
   onOpenFolder,
   openFolderLabel,
   openFolderBusy,
-  onOpenTab,
-  openTabLabel,
   localeSwitcher,
   controls,
 }: TopBarProps) {
@@ -52,13 +48,6 @@ export function TopBar({
           )}
         >
           {openFolderLabel}
-        </button>
-        <button
-          type="button"
-          onClick={onOpenTab}
-          className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold transition hover:border-plasma hover:text-plasma"
-        >
-          {openTabLabel}
         </button>
         {controls.map((control) => (
           <IconButton
