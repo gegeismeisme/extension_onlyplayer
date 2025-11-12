@@ -4,7 +4,8 @@ import { IconButton } from '@/components/IconButton'
 import { cn } from '@/utils/cn'
 
 export type TopBarControl = {
-  icon: LucideIcon
+  icon?: LucideIcon
+  glyph?: string
   label: string
   onClick: () => void
   disabled?: boolean
@@ -53,6 +54,7 @@ export function TopBar({
           <IconButton
             key={control.label}
             icon={control.icon}
+            glyph={control.glyph}
             label={control.label}
             onClick={control.onClick}
             disabled={control.disabled}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, Gauge, PictureInPicture } from 'lucide-react'
+import { Camera, PictureInPicture, Repeat, Repeat1, Shuffle } from 'lucide-react'
 import { useLocale } from '@/i18n/provider'
 import { TopBar, type TopBarControl } from '@/components/TopBar'
 import { Sidebar } from '@/components/Sidebar'
@@ -11,9 +11,9 @@ import { loadPreferences, savePreferences } from '@/utils/storage'
 const speedSteps = [0.5, 1, 1.5, 2]
 
 const queueModeMeta = {
-  loop: { labelId: 'queue.loop', fallback: 'Loop playlist', icon: Gauge },
-  shuffle: { labelId: 'queue.shuffle', fallback: 'Shuffle play', icon: Gauge },
-  single: { labelId: 'queue.single', fallback: 'Single loop', icon: Gauge },
+  loop: { labelId: 'queue.loop', fallback: 'Loop playlist', icon: Repeat },
+  shuffle: { labelId: 'queue.shuffle', fallback: 'Shuffle play', icon: Shuffle },
+  single: { labelId: 'queue.single', fallback: 'Single loop', icon: Repeat1 },
 }
 
 function App() {
@@ -279,7 +279,7 @@ function App() {
       active: true,
     },
     {
-      icon: Gauge,
+      glyph: speedLabel,
       label: t('player.speed.cycle', 'Speed') + ` ${speedLabel}`,
       onClick: handleSpeedCycle,
     },
