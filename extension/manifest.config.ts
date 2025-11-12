@@ -8,15 +8,15 @@ const manifest = defineManifest({
   default_locale: 'en',
   minimum_chrome_version: '123',
   icons: {
-    '16': 'icons/onlyplayer.svg',
-    '48': 'icons/onlyplayer.svg',
-    '128': 'icons/onlyplayer.svg',
+    '16': 'icons/onlyplayer.png',
+    '48': 'icons/onlyplayer.png',
+    '128': 'icons/onlyplayer.png',
   },
   action: {
     default_icon: {
-      '16': 'icons/onlyplayer.svg',
-      '48': 'icons/onlyplayer.svg',
-      '128': 'icons/onlyplayer.svg',
+      '16': 'icons/onlyplayer.png',
+      '48': 'icons/onlyplayer.png',
+      '128': 'icons/onlyplayer.png',
     },
     default_title: '__MSG_extensionName__',
     default_popup: 'index.html',
