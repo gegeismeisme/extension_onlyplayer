@@ -328,17 +328,23 @@ function App() {
           </div>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)] place-items-stretch">
           <Sidebar
             folders={savedFolders}
-            onSelect={(id) => void loadFromSavedFolder(id)}
+            onFolderSelect={(id) => void loadFromSavedFolder(id)}
             emptyLabel={t('library.empty', 'Pick a folder to begin')}
+            playlist={queue.map((item) => ({
+              id: item.id,
+              name: item.name,
+              kind: item.kind,
+            }))}
+            activeTrackId={nowPlaying?.id}
+            onTrackSelect={focusItem}
           />
           <PlayerSurface
             videoRef={videoRef}
             nowPlaying={nowPlaying}
-            queue={queue}
-            playing={!!onplaying}
+            playing={playing}
             onTogglePlay={handlePrimaryToggle}
             onStop={handleStop}
             onPrev={playPrevious}
@@ -346,7 +352,6 @@ function App() {
             currentTime={currentTime}
             duration={duration}
             onSeek={handleSeek}
-            onSelectItem={focusItem}
             volume={volume}
             muted={muted}
             onVolumeChange={setVolume}

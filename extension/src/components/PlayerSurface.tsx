@@ -1,13 +1,11 @@
 import type { ReactNode, RefObject } from 'react'
 import type { MediaItem } from '@/types/media'
 import { IconButton } from '@/components/IconButton'
-import { cn } from '@/utils/cn'
 import { StepBack, StepForward, Play, Pause, Square } from 'lucide-react'
 
 type PlayerSurfaceProps = {
   videoRef: RefObject<HTMLVideoElement | null>
   nowPlaying?: MediaItem
-  queue: MediaItem[]
   playing: boolean
   onTogglePlay: () => void
   onStop: () => void
@@ -16,7 +14,6 @@ type PlayerSurfaceProps = {
   currentTime: number
   duration: number
   onSeek: (value: number) => void
-  onSelectItem: (id: string) => void
   volume: number
   muted: boolean
   onVolumeChange: (value: number) => void
@@ -44,7 +41,6 @@ const formatSize = (bytes: number, unitLabel: string) => {
 export function PlayerSurface({
   videoRef,
   nowPlaying,
-  queue,
   playing,
   onTogglePlay,
   onStop,
@@ -53,7 +49,6 @@ export function PlayerSurface({
   currentTime,
   duration,
   onSeek,
-  onSelectItem,
   volume,
   muted,
   onVolumeChange,
@@ -132,32 +127,6 @@ export function PlayerSurface({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-        <ul className="flex max-h-72 flex-col gap-2 overflow-auto pr-2" role="list">
-          {queue.map((item) => (
-            <li key={item.id}>
-              <button
-                className={cn(
-                  'flex w-full items-center justify-between rounded-2xl border border-white/5 bg-white/5 p-3 text-left transition hover:border-plasma/50',
-                  nowPlaying?.id === item.id && 'border-plasma/60 bg-white/10 shadow-neon',
-                )}
-                onClick={() => onSelectItem(item.id)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black/30 text-xl">
-                    {iconForKind[item.kind]}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">{item.name}</p>
-                    <p className="text-xs text-white/50">{item.ext.toUpperCase()}</p>
-                  </div>
-                </div>
-                <span className="text-xs text-white/60">{formatSize(item.size, unitLabel)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
     </div>
   )
 }
