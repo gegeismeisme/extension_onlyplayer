@@ -38,6 +38,21 @@ OnlyPlayer is a Chromium-compatible browser extension that turns any modern brow
 10. Picture-in-picture and compact mini-player window.
 11. Settings sync (profiles, UI layout, recent folders) with optional cloud backup via browser sync storage, plus locale pack download/update flow.
 
+## Media Format Support
+OnlyPlayer builds on Chromium's native `<audio>/<video>` decoders, so compatibility is tied to what your browser already ships. The current behavior is:
+
+| Confirmed working | Notes |
+| --- | --- |
+| MP4 (H.264 + AAC), WebM (VP9/Opus) | Recommended for video playback. |
+| MP3, AAC/M4A, Opus/OGG, WAV | Audio playlists (M4A must be AAC, not ALAC/DRM). |
+
+| Commonly unsupported | Reason |
+| --- | --- |
+| HEVC/H.265 MP4, AV1 on old Chromium versions | Codec absent on many systems. |
+| FLAC, APE, DTS, proprietary containers (RMVB, TS, FLV) | Browser cannot decode natively; consider transcoding. |
+
+When the browser cannot decode a file, the player surfaces a warning and skips playback. Users can convert files to MP4 (H.264 + AAC) or MP3/AAC for the broadest compatibility.
+
 ## Stretch Ideas
 - DLNA or SMB discovery through an optional helper service for network media.
 - WASM-powered extra codec pack (for example FFmpeg.wasm) for unsupported formats.

@@ -1,4 +1,4 @@
-export type LocaleKey = 'en' | 'zh-CN'
+﻿export type LocaleKey = 'en' | 'zh-CN'
 
 type MessageCatalog = Record<string, string>
 
@@ -47,6 +47,8 @@ export const catalogs: Record<LocaleKey, MessageCatalog> = {
     'library.scanning': 'Scanning media...',
     'library.error': 'Scan failed',
     'errors.noFSA': 'Browser cannot open folders',
+    'errors.unsupportedMedia':
+      'Your browser cannot decode this media file. Please convert it to MP4 (H.264 + AAC) or MP3/AAC and try again.',
     'library.recentsTitle': 'Recent folders',
     'library.scanDesc': 'Pick a local folder of audio/video files',
     'library.tapToReload': 'Tap to reopen',
@@ -97,6 +99,7 @@ export const catalogs: Record<LocaleKey, MessageCatalog> = {
     'library.scanning': '正在扫描媒体…',
     'library.error': '扫描失败',
     'errors.noFSA': '浏览器无法打开文件夹',
+    'errors.unsupportedMedia': '浏览器无法解码该媒体文件，请转换为 MP4（H.264 + AAC）或 MP3/AAC 后再试。',
     'library.recentsTitle': '最近目录',
     'library.scanDesc': '选择本地音视频文件夹',
     'library.tapToReload': '点击重新载入',

@@ -60,6 +60,7 @@ function App() {
   const [pipActive, setPipActive] = useState(false)
   const [prefsLoaded, setPrefsLoaded] = useState(false)
   const [autoTried, setAutoTried] = useState(false)
+  const [mediaError, setMediaError] = useState<string | null>(null)
 
   const nowPlaying = useMemo(
     () => library.find((item) => item.id === nowPlayingId),
@@ -155,6 +156,7 @@ function App() {
       setHasVideoFrame(false)
       setPipActive(false)
     }
+    setMediaError(null)
   }, [nowPlaying, setPlaybackMetrics])
 
   useEffect(() => {
@@ -178,16 +180,24 @@ function App() {
       playNext()
     }
 
+    const handleError = () => {
+      console.warn('[OnlyPlayer] media error', player.error)
+      setMediaError(t('errors.unsupportedMedia', 'Your browser cannot decode this media file.'))
+      setPlaying(false)
+    }
+
     player.addEventListener('timeupdate', update)
     player.addEventListener('loadedmetadata', handleMetadata)
     player.addEventListener('ended', handleEnded)
+    player.addEventListener('error', handleError)
 
     return () => {
       player.removeEventListener('timeupdate', update)
       player.removeEventListener('loadedmetadata', handleMetadata)
       player.removeEventListener('ended', handleEnded)
+      player.removeEventListener('error', handleError)
     }
-  }, [playNext, setPlaybackMetrics, setPlaying])
+  }, [playNext, setPlaybackMetrics, setPlaying, t])
 
   const handleScan = useCallback(async () => {
     if (!('showDirectoryPicker' in window)) {
@@ -357,6 +367,7 @@ function App() {
             onVolumeChange={setVolume}
             onToggleMute={toggleMute}
             unitLabel={unitLabel}
+            mediaError={mediaError}
           />
         </div>
       </div>

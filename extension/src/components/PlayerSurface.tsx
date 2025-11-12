@@ -19,6 +19,7 @@ type PlayerSurfaceProps = {
   onVolumeChange: (value: number) => void
   onToggleMute: () => void
   unitLabel: string
+  mediaError?: string | null
 }
 
 const iconForKind: Record<'audio' | 'video', ReactNode> = {
@@ -54,13 +55,36 @@ export function PlayerSurface({
   onVolumeChange,
   onToggleMute,
   unitLabel,
+  mediaError,
 }: PlayerSurfaceProps) {
+  const isAudio = nowPlaying?.kind === 'audio'
+
   return (
     <div className="mx-auto w-full max-w-[1100px] space-y-4">
       <div className="rounded-3xl border border-white/10 bg-black/40 p-4 lg:p-6">
         <div className="flex flex-col gap-4">
-          <div className="aspect-video w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-black to-slate-900">
-            <video ref={videoRef} className="h-full w-full object-cover" playsInline controls={false} />
+          <div className="relative aspect-video w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-black via-slate-900 to-slate-950">
+            <video
+              ref={videoRef}
+              className={
+                isAudio
+                  ? 'pointer-events-none absolute inset-0 h-0 w-0 opacity-0'
+                  : 'h-full w-full object-cover'
+              }
+              playsInline
+              controls={false}
+            />
+            {isAudio && (
+              <div className="audio-spectrum absolute inset-0 flex items-center justify-center">
+                {Array.from({ length: 14 }).map((_, index) => (
+                  <span
+                    key={index}
+                    className="audio-spectrum__bar"
+                    style={{ animationDelay: `${index * 0.12}s` }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-2 text-xs text-white/60">
             <div className="flex items-center justify-between">
@@ -95,6 +119,11 @@ export function PlayerSurface({
           </div>
         </div>
       </div>
+      {mediaError && (
+        <div className="rounded-2xl border border-amber-400/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">
+          {mediaError}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-black/30 p-4">
         <IconButton icon={StepBack} label="Previous" onClick={onPrev} />
