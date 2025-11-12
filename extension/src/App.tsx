@@ -4,7 +4,6 @@ import { useLocale } from '@/i18n/provider'
 import { TopBar, type TopBarControl } from '@/components/TopBar'
 import { Sidebar } from '@/components/Sidebar'
 import { PlayerSurface } from '@/components/PlayerSurface'
-import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 import { usePlayerStore } from '@/state/usePlayerStore'
 import { loadPreferences, savePreferences } from '@/utils/storage'
 
@@ -17,7 +16,7 @@ const queueModeMeta = {
 }
 
 function App() {
-  const { t } = useLocale()
+  const { t, setLocale, locale } = useLocale()
   const {
     library,
     nowPlayingId,
@@ -317,8 +316,9 @@ function App() {
             loading ? t('library.scanning', 'Scanning media...') : t('action.scan', 'Open folder')
           }
           openFolderBusy={loading}
-          localeSwitcher={<LocaleSwitcher />}
           controls={topControls}
+          onLocaleToggle={() => setLocale(locale === 'en' ? 'zh-CN' : 'en')}
+          localeLabel={t('settings.locale', 'Language selector')}
         />
 
         {error && (
@@ -327,7 +327,7 @@ function App() {
           </div>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)] place-items-stretch">
+        <div className="grid gap-6 justify-center items-start lg:grid-cols-[260px_auto]">
           <Sidebar
             folders={savedFolders}
             onFolderSelect={(id) => void loadFromSavedFolder(id)}

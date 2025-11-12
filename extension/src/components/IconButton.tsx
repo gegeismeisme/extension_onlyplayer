@@ -62,7 +62,7 @@ export function IconButton({
         </span>
       )}
       {badge && (
-        <span className="absolute -right-2 -bottom-1 rounded-full bg-black/80 px-1 text-[11px] font-bold text-plasma shadow-lg">
+        <span className="absolute -right-1.5 -bottom-1 rounded-full bg-black/75 px-1 text-[9px] font-bold text-plasma shadow-lg">
           {badge}
         </span>
       )}

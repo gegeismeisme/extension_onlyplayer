@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { IconButton } from '@/components/IconButton'
 import { cn } from '@/utils/cn'
+import { Globe } from 'lucide-react'
 
 export type TopBarControl = {
   icon?: LucideIcon
@@ -19,8 +19,9 @@ type TopBarProps = {
   onOpenFolder: () => void
   openFolderLabel: string
   openFolderBusy: boolean
-  localeSwitcher: ReactNode
   controls: TopBarControl[]
+  onLocaleToggle: () => void
+  localeLabel: string
 }
 
 export function TopBar({
@@ -29,8 +30,9 @@ export function TopBar({
   onOpenFolder,
   openFolderLabel,
   openFolderBusy,
-  localeSwitcher,
   controls,
+  onLocaleToggle,
+  localeLabel,
 }: TopBarProps) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
@@ -63,7 +65,7 @@ export function TopBar({
             badge={control.badge}
           />
         ))}
-        {localeSwitcher}
+        <IconButton icon={Globe} label={localeLabel} onClick={onLocaleToggle} size="sm" />
       </div>
     </header>
   )
