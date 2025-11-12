@@ -307,7 +307,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-ink via-black to-ink text-white">
-      <div className="mx-auto flex max-w-[1200px] flex-col gap-6 px-6 py-8 lg:py-12">
+      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 px-6 py-8 lg:px-10 lg:py-12">
         <TopBar
           title="OnlyPlayer"
           subtitle="Local Media Deck"
@@ -327,7 +327,7 @@ function App() {
           </div>
         )}
 
-        <div className="grid gap-6 justify-center items-start lg:grid-cols-[260px_auto]">
+        <div className="grid items-start justify-center gap-6 lg:grid-cols-[minmax(260px,300px)_minmax(720px,1fr)] lg:gap-8">
           <Sidebar
             folders={savedFolders}
             onFolderSelect={(id) => void loadFromSavedFolder(id)}

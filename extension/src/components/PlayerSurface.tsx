@@ -56,7 +56,7 @@ export function PlayerSurface({
   unitLabel,
 }: PlayerSurfaceProps) {
   return (
-    <div className="space-y-4 mx-auto w-full max-w-[900px]">
+    <div className="mx-auto w-full max-w-[1100px] space-y-4">
       <div className="rounded-3xl border border-white/10 bg-black/40 p-4 lg:p-6">
         <div className="flex flex-col gap-4">
           <div className="aspect-video w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-black to-slate-900">
