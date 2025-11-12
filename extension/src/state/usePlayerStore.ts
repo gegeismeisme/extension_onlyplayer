@@ -44,8 +44,8 @@ type PlayerState = {
   loadFromDirectory: (handle: FileSystemDirectoryHandle) => Promise<void>
   loadFromSavedFolder: (id: string) => Promise<boolean>
   clearLibrary: () => void
-  playNext: () => void
-  playPrevious: () => void
+  playNext: (options?: { manual?: boolean }) => void
+  playPrevious: (options?: { manual?: boolean }) => void
 }
 
 const revokeUrls = (items: MediaItem[]) => {
@@ -193,8 +193,9 @@ export const usePlayerStore = create<PlayerState>()(
         state.playing = false
       })
     },
-    playNext: () =>
+    playNext: (options) =>
       set((state) => {
+        const manual = options?.manual ?? false
         if (!state.nowPlayingId) return
         if (state.library.length === 0) return
 
@@ -207,7 +208,7 @@ export const usePlayerStore = create<PlayerState>()(
           return
         }
 
-        if (state.queueMode === 'single') {
+        if (state.queueMode === 'single' && !manual) {
           state.playing = true
           return
         }
@@ -215,20 +216,36 @@ export const usePlayerStore = create<PlayerState>()(
         const idx = state.library.findIndex((item) => item.id === state.nowPlayingId)
         if (idx >= 0) {
           const nextIndex = idx < state.library.length - 1 ? idx + 1 : 0
-          if (nextIndex !== idx) {
-            state.nowPlayingId = state.library[nextIndex].id
-            state.playing = true
-          } else {
-            state.playing = false
+          if (state.library.length === 1 && nextIndex === idx) {
+            state.playing = manual
+            return
           }
+          state.nowPlayingId = state.library[nextIndex].id
+          state.playing = true
         }
       }),
-    playPrevious: () =>
+    playPrevious: (options) =>
       set((state) => {
+        const manual = options?.manual ?? false
         if (!state.nowPlayingId) return
+        if (state.library.length === 0) return
+        if (state.queueMode === 'shuffle' && !manual) {
+          const available = state.library.filter((item) => item.id !== state.nowPlayingId)
+          if (available.length === 0) return
+          const prev = available[Math.floor(Math.random() * available.length)]
+          state.nowPlayingId = prev.id
+          state.playing = true
+          return
+        }
+
         const idx = state.library.findIndex((item) => item.id === state.nowPlayingId)
-        if (idx > 0) {
-          state.nowPlayingId = state.library[idx - 1].id
+        if (idx >= 0) {
+          const prevIndex = idx > 0 ? idx - 1 : state.library.length - 1
+          if (state.library.length === 1 && prevIndex === idx) {
+            state.playing = true
+            return
+          }
+          state.nowPlayingId = state.library[prevIndex].id
           state.playing = true
         }
       }),

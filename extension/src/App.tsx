@@ -69,6 +69,14 @@ function App() {
 
   const queue = library
 
+  const handleNext = useCallback(() => {
+    playNext({ manual: true })
+  }, [playNext])
+
+  const handlePrev = useCallback(() => {
+    playPrevious({ manual: true })
+  }, [playPrevious])
+
   const openFullTab = useCallback(() => {
     if (window.location.search.includes('standalone=1')) return
     if (chrome.runtime?.openOptionsPage) {
@@ -176,6 +184,13 @@ function App() {
     }
 
     const handleEnded = () => {
+      if (queueMode === 'single') {
+        player.currentTime = 0
+        player.play().catch(() => {
+          setPlaying(false)
+        })
+        return
+      }
       setPlaying(false)
       playNext()
     }
@@ -184,6 +199,9 @@ function App() {
       console.warn('[OnlyPlayer] media error', player.error)
       setMediaError(t('errors.unsupportedMedia', 'Your browser cannot decode this media file.'))
       setPlaying(false)
+      if (library.length > 1) {
+        playNext({ manual: true })
+      }
     }
 
     player.addEventListener('timeupdate', update)
@@ -197,7 +215,7 @@ function App() {
       player.removeEventListener('ended', handleEnded)
       player.removeEventListener('error', handleError)
     }
-  }, [playNext, setPlaybackMetrics, setPlaying, t])
+  }, [playNext, setPlaybackMetrics, setPlaying, t, queueMode, library.length])
 
   const handleScan = useCallback(async () => {
     if (!('showDirectoryPicker' in window)) {
@@ -357,8 +375,8 @@ function App() {
             playing={playing}
             onTogglePlay={handlePrimaryToggle}
             onStop={handleStop}
-            onPrev={playPrevious}
-            onNext={playNext}
+            onPrev={handlePrev}
+            onNext={handleNext}
             currentTime={currentTime}
             duration={duration}
             onSeek={handleSeek}
