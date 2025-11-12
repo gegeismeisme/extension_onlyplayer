@@ -48,6 +48,7 @@ function App() {
   } = usePlayerStore()
 
   const queueMeta = queueModeMeta[queueMode]
+  const playingState = playing ? 'playing' : 'paused'
   const unitLabel = t('player.unit.mb', 'MB')
   const speedIndex = speedSteps.findIndex((step) => Math.abs(step - playbackRate) < 0.01)
   const safeSpeedIndex = speedIndex >= 0 ? speedIndex : 1
@@ -66,7 +67,6 @@ function App() {
   )
 
   const queue = library
-  const playingState = playing ? 'playing' : 'paused'
 
   const openFullTab = useCallback(() => {
     if (window.location.search.includes('standalone=1')) return
@@ -338,7 +338,7 @@ function App() {
             videoRef={videoRef}
             nowPlaying={nowPlaying}
             queue={queue}
-            playing={!!playing}
+            playing={!!onplaying}
             onTogglePlay={handlePrimaryToggle}
             onStop={handleStop}
             onPrev={playPrevious}

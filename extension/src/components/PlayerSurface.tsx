@@ -63,40 +63,40 @@ export function PlayerSurface({
   return (
     <div className="space-y-4">
       <div className="rounded-3xl border border-white/10 bg-black/40 p-4 lg:p-6">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+        <div className="flex flex-col gap-4">
           <div className="aspect-video w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-black to-slate-900">
             <video ref={videoRef} className="h-full w-full object-cover" playsInline controls={false} />
           </div>
-          <div className="flex flex-col justify-between gap-3 rounded-3xl border border-white/5 bg-white/5 p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-2xl">
-                {nowPlaying ? iconForKind[nowPlaying.kind] : <span>⏺️</span>}
+          <div className="space-y-2 text-xs text-white/60">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-xl">
+                  {nowPlaying ? iconForKind[nowPlaying.kind] : <span>⏺️</span>}
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.4em] text-white/50">Now playing</p>
+                  <p className="font-display text-lg">{nowPlaying?.name ?? '—'}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.4em] text-white/50">Now playing</p>
-                <p className="font-display text-xl">{nowPlaying?.name ?? '—'}</p>
-              </div>
-            </div>
-            <div className="space-y-2 text-xs text-white/60">
-              <div className="flex justify-between">
-                <span>{formatSeconds(currentTime)}</span>
-                <span>{formatSeconds(duration)}</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={duration || 1}
-                value={currentTime}
-                onChange={(event) => onSeek(Number(event.target.value))}
-                className="w-full accent-plasma"
-              />
               {nowPlaying && (
-                <div className="flex justify-between">
-                  <span>{nowPlaying.ext.toUpperCase()}</span>
-                  <span>{formatSize(nowPlaying.size, unitLabel)}</span>
+                <div className="text-right text-xs text-white/60">
+                  <div>{nowPlaying.ext.toUpperCase()}</div>
+                  <div>{formatSize(nowPlaying.size, unitLabel)}</div>
                 </div>
               )}
             </div>
+            <div className="flex justify-between">
+              <span>{formatSeconds(currentTime)}</span>
+              <span>{formatSeconds(duration)}</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={duration || 1}
+              value={currentTime}
+              onChange={(event) => onSeek(Number(event.target.value))}
+              className="w-full accent-plasma"
+            />
           </div>
         </div>
       </div>
@@ -139,7 +139,7 @@ export function PlayerSurface({
               <button
                 className={cn(
                   'flex w-full items-center justify-between rounded-2xl border border-white/5 bg-white/5 p-3 text-left transition hover:border-plasma/50',
-                  nowPlaying?.id === item.id && 'border-plasma/60 bg-white/10',
+                  nowPlaying?.id === item.id && 'border-plasma/60 bg-white/10 shadow-neon',
                 )}
                 onClick={() => onSelectItem(item.id)}
               >

@@ -9,6 +9,7 @@ type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   active?: boolean
   muted?: boolean
   size?: 'sm' | 'md' | 'lg'
+  badge?: string
 }
 
 const sizeMap: Record<NonNullable<IconButtonProps['size']>, string> = {
@@ -31,13 +32,14 @@ export function IconButton({
   muted,
   size = 'md',
   className,
+  badge,
   ...props
 }: IconButtonProps) {
   return (
     <button
       type="button"
       className={cn(
-        'flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 font-display transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-plasma disabled:cursor-not-allowed disabled:opacity-40',
+        'relative flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 font-display transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-plasma disabled:cursor-not-allowed disabled:opacity-40',
         active && 'border-plasma/70 bg-white/10 shadow-neon text-plasma',
         muted && 'text-white/30',
         sizeMap[size],
@@ -57,6 +59,11 @@ export function IconButton({
       ) : (
         <span aria-hidden="true" className="text-2xl">
           {glyph}
+        </span>
+      )}
+      {badge && (
+        <span className="absolute -right-1 -top-1 rounded-full bg-plasma px-1 text-[10px] font-bold text-black">
+          {badge}
         </span>
       )}
       <span className="sr-only">{label}</span>

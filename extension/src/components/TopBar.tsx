@@ -9,6 +9,7 @@ export type TopBarControl = {
   onClick: () => void
   disabled?: boolean
   active?: boolean
+  badge?: string
 }
 
 type TopBarProps = {
@@ -68,6 +69,7 @@ export function TopBar({
             disabled={control.disabled}
             active={control.active}
             size="sm"
+            badge={control.badge}
           />
         ))}
         {localeSwitcher}
