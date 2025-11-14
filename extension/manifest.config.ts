@@ -26,7 +26,6 @@ const manifest = defineManifest({
     open_in_tab: true,
   },
   permissions: ['storage'],
-  optional_permissions: ['downloads'],
   background: {
     service_worker: 'src/background/index.ts',
     type: 'module',
